@@ -3,7 +3,7 @@ import requests
 import difflib
 from database import get_db
 
-# Configuración de GROQ (NO Gemini)
+# Configuración de GROQ
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.1-8b-instant"
@@ -85,17 +85,18 @@ def llamar_groq(mensaje_usuario, contexto_libros=""):
         print("⚠️ No hay GROQ_API_KEY configurada")
         return None
     
-    sistema = """Eres ChacaBot, una bibliotecaria amable del Colegio Chacabuco.
+    sistema = """Eres ChacaBot, una bibliotecaria amable y conversacional del Colegio Chacabuco.
 
 REGLAS IMPORTANTES:
-1. Respondé siempre en español.
-2. Sé clara y profesional.
+1. Respondé siempre en español, con tono natural y amable.
+2. Sé clara y profesional, pero no robótica.
 3. No uses emojis.
 4. Solo presentate como ChacaBot cuando te saluden.
 5. RESTRICCIÓN ESTRICTA: SOLO responde sobre temas relacionados con la biblioteca, libros, préstamos o lectura.
-6. Si el usuario pregunta sobre temas ajenos (recetas, clima, juegos, etc.), responde EXACTAMENTE: "Soy ChacaBot y solo puedo ayudarte con información sobre la biblioteca y sus libros. ¿Hay algún libro que estés buscando?"
+6. Si el usuario saluda o pregunta cómo estás, respondé naturalmente y luego preguntá en qué podés ayudar con los libros.
+7. Si pregunta sobre temas ajenos (recetas, clima, juegos, etc.), respondé amablemente: "Soy ChacaBot y solo puedo ayudarte con información sobre la biblioteca y sus libros. ¿Hay algún libro que estés buscando?"
 
-FORMATO para mostrar libros:
+FORMATO para mostrar libros (SOLO cuando muestres resultados):
 Nombre: [título]
 Capítulos: [capítulo]
 Editorial: [editorial]
@@ -106,14 +107,14 @@ Categoría: [categoría]
     
     mensajes = [
         {"role": "system", "content": sistema},
-        {"role": "user", "content": f"CATÁLOGO DISPONIBLE:\n{contexto_libros}\n\nUSUARIO: {mensaje_usuario}"}
+        {"role": "user", "content": f"CONTEXTO: {contexto_libros}\n\nUSUARIO: {mensaje_usuario}"}
     ]
     
     payload = {
         "messages": mensajes,
         "model": GROQ_MODEL,
-        "temperature": 0.3,
-        "max_tokens": 1000
+        "temperature": 0.5,
+        "max_tokens": 500
     }
     
     headers = {
@@ -142,21 +143,27 @@ def procesar_consulta(consulta):
     print(f"\n🔍 Consulta recibida: '{consulta}'")
     consulta_lower = consulta.lower().strip()
     
-    # 1. SALUDOS
-    if any(s in consulta_lower for s in ["hola", "buenas", "hey", "hi", "buen dia", "buenas tardes"]):
-        print("→ Detectado: Saludo")
-        respuesta = llamar_groq(consulta, "El usuario te saluda. Presentate como ChacaBot y ofrecé ayuda.")
-        return respuesta if respuesta else "¡Hola! Soy ChacaBot, el asistente de la biblioteca. ¿En qué libro te puedo ayudar hoy?"
+    # 1. SALUDOS Y CHARLA CASUAL (Lista ampliada)
+    saludos = [
+        "hola", "buenas", "hey", "hi", "buen dia", "buenas tardes", "buenas noches",
+        "como estas", "como andas", "todo bien", "que tal", "como va", "que onda", 
+        "hola chaca", "chaca", "qué hacés", "que haces", "como te va"
+    ]
+    if any(s in consulta_lower for s in saludos):
+        print("→ Detectado: Saludo o charla casual")
+        contexto = "El usuario está saludando o haciendo charla casual. Respondé de forma amable y breve, presentándote como ChacaBot y preguntando en qué puedes ayudar con la biblioteca."
+        respuesta = llamar_groq(consulta, contexto)
+        return respuesta if respuesta else "¡Hola! Soy ChacaBot, todo bien por acá. ¿En qué libro te puedo ayudar hoy?"
     
-    # 2. CONSULTA SOBRE CATEGORÍAS
-    if any(k in consulta_lower for k in ["que libros", "q libros", "que tenes", "q tenes", "tipos de libros", "categorias", "materias", "catalogo", "que hay", "q hay"]):
-        print("→ Detectado: Consulta de categorías")
+    # 2. CONSULTA SOBRE CATEGORÍAS O CATÁLOGO
+    if any(k in consulta_lower for k in ["que libros", "q libros", "que tenes", "q tenes", "tipos de libros", "categorias", "materias", "catalogo", "que hay", "q hay", "lista de"]):
+        print("→ Detectado: Consulta de catálogo/categorías")
         cats = obtener_categorias()
         if cats:
-            contexto = "Categorías disponibles en la biblioteca:\n\n" + "\n".join(f"- {cat}" for cat in cats)
+            contexto = "Categorías disponibles:\n\n" + "\n".join(f"- {cat}" for cat in cats)
             print(f"→ Categorías encontradas: {len(cats)}")
             respuesta = llamar_groq(consulta, contexto)
-            return respuesta if respuesta else f"Tenemos las siguientes categorías de libros:\n\n" + "\n".join(f"📚 {cat}" for cat in cats)
+            return respuesta if respuesta else f"Tenemos estas categorías:\n\n" + "\n".join(f"• {cat}" for cat in cats)
         return "No hay categorías cargadas en este momento."
     
     # 3. BÚSQUEDA POR CATEGORÍA ESPECÍFICA
@@ -173,7 +180,7 @@ def procesar_consulta(consulta):
         else:
             return f"No hay libros cargados de la categoría '{categoria_detectada}'."
     
-    # 4. BÚSQUEDA GENERAL
+    # 4. BÚSQUEDA GENERAL (Título, Autor, etc.)
     if len(consulta_lower.split()) >= 2:
         print("→ Búsqueda general")
         libros = buscar_libros_general(consulta)
@@ -184,8 +191,9 @@ def procesar_consulta(consulta):
             respuesta = llamar_groq(consulta, contexto)
             return respuesta if respuesta else f"Libros encontrados:\n\n{contexto}"
         else:
-            return "No encontré libros con esa búsqueda. Probá con otro término o consultá las categorías disponibles."
+            return "No encontré libros con esa búsqueda. Probá con otro término o preguntame '¿Qué categorías hay?'"
     
-    # 5. CONSULTA NO ENTENDIDA
-    print("→ Consulta no entendida")
-    return "Podés preguntarme por:\n- Una categoría específica (ej: 'libros de biología')\n- Las categorías disponibles (ej: 'qué libros tenés')\n- Un título o autor\n\n¿En qué te ayudo?"
+    # 5. CONSULTAS CORTAS O NO ENTENDIDAS
+    print("→ Consulta corta, intentando respuesta general")
+    respuesta = llamar_groq(consulta, "El usuario hizo una consulta muy corta. Respondé amablemente preguntando en qué puedes ayudar con los libros.")
+    return respuesta if respuesta else "Podés preguntarme por categorías como 'biología', buscar un título o autor, o decirme 'hola' para charlar. ¿En qué te ayudo?"
