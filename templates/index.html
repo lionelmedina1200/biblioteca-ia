@@ -4,72 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biblioteca IA</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div id="welcome-modal" class="welcome-modal">
+    <!-- Welcome Modal -->
+    <div class="welcome-modal" id="welcome-modal">
         <div class="welcome-content">
-            <div class="welcome-icon">📚</div>
+            <div class="welcome-icon">🐶</div>
             <h2>¡Bienvenido a Biblioteca IA!</h2>
             <p class="welcome-subtitle">Busca tu libro</p>
             <p class="welcome-desc">Nuestro asistente inteligente te ayudará a encontrar el libro perfecto.</p>
-            <button id="start-btn" class="btn-primary">Comenzar a buscar</button>
+            <button class="btn-primary" id="start-btn">Comenzar a buscar</button>
         </div>
     </div>
 
+    <!-- Header -->
     <header class="header">
-        <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
+        <div class="header-top">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <h1>Biblioteca IA</h1>
+            </div>
+            <div class="user-menu" id="user-menu"></div>
+        </div>
         <nav class="header-nav">
             <a href="/" class="nav-link active">Inicio</a>
             <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/mis-libros" class="nav-link" id="nav-mis-libros" style="display:none;">Mis Libros</a>
             <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
             <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
-            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Gestión Libros</a>
+            <a href="/logs" class="nav-link" id="nav-logs" style="display:none;">Logs Admin</a>
         </nav>
-        <div id="user-menu"></div>
     </header>
 
+    <!-- Hero -->
     <section class="hero">
-        <div class="hero-content"><h2>Tu asistente de biblioteca inteligente</h2><p>Busca libros por título, autor, categoría o tema.</p></div>
+        <h2>Tu asistente de biblioteca inteligente</h2>
+        <p>Busca libros por título, autor, categoría o tema.</p>
     </section>
 
-    <section class="chat-section">
+    <!-- Chat -->
+    <main class="chat-section">
         <div class="chat-container">
-            <div class="chat-header"><div class="chat-avatar"><div class="avatar-chat">🤖</div><div><h3>Asistente Biblioteca</h3><span class="status-dot"></span><span class="status-text">En línea</span></div></div></div>
+            <div class="chat-header">
+                <div class="chat-avatar">
+                    <div class="avatar-chat">
+                        <!-- Golden Retriever Avatar SVG -->
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M30 60 Q30 30 50 30 Q70 30 70 60 Z" fill="#d4a373"/>
+                            <path d="M25 30 Q10 40 15 60 Z" fill="#a67c52"/>
+                            <path d="M75 30 Q90 40 85 60 Z" fill="#a67c52"/>
+                            <ellipse cx="50" cy="60" rx="15" ry="12" fill="#f3e5ab"/>
+                            <circle cx="50" cy="55" r="4" fill="#333"/>
+                            <circle cx="40" cy="45" r="3" fill="#333"/>
+                            <circle cx="60" cy="45" r="3" fill="#333"/>
+                            <rect x="30" y="38" width="20" height="14" rx="5" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                            <rect x="50" y="38" width="20" height="14" rx="5" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                            <path d="M45 65 Q50 70 55 65" stroke="#333" stroke-width="2" fill="none"/>
+                            <path d="M35 75 L50 80 L65 75 L65 90 L50 85 L35 90 Z" fill="#ef4444"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <strong>Asistente Biblioteca</strong>
+                        <div><span class="status-dot"></span><span class="status-text">En línea</span></div>
+                    </div>
+                </div>
+            </div>
             <div class="chat-messages" id="chat-messages">
-                <div class="message bot"><div class="message-avatar">🤖</div><div class="message-content"><p>¡Hola! 👋 Soy el asistente de la biblioteca. ¿Qué libro estás buscando?</p></div></div>
+                <div class="message bot">
+                    <div class="message-avatar">
+                        <!-- SVG Dog Small -->
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M30 60 Q30 30 50 30 Q70 30 70 60 Z" fill="#d4a373"/>
+                            <ellipse cx="50" cy="60" rx="15" ry="12" fill="#f3e5ab"/>
+                            <circle cx="50" cy="55" r="4" fill="#333"/>
+                            <circle cx="40" cy="45" r="3" fill="#333"/>
+                            <circle cx="60" cy="45" r="3" fill="#333"/>
+                            <rect x="30" y="38" width="20" height="14" rx="5" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                            <rect x="50" y="38" width="20" height="14" rx="5" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <div class="message-content">
+                        <p>¡Hola! 🐶 Soy ChacaBot, el asistente de la biblioteca. ¿En qué libro te puedo ayudar hoy?</p>
+                    </div>
+                </div>
             </div>
             <div class="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Ej: ¿Qué libros de programación tenés?" autocomplete="off">
-                <button id="send-btn" class="btn-send"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+                <input type="text" id="chat-input" placeholder="Ej: ¿Qué libros de programación tenés?">
+                <button class="btn-send" id="send-btn">➤</button>
             </div>
         </div>
-    </section>
+    </main>
 
+    <!-- Suggestions -->
     <section class="suggestions">
         <h3>💡 Búsquedas populares</h3>
         <div class="suggestion-chips">
             <button class="chip" onclick="quickSearch('libros de programación')">💻 Programación</button>
-            <button class="chip" onclick="quickSearch('novelas')">📖 Literatura</button>
-            <button class="chip" onclick="quickSearch('Clean Code')">📋 Clean Code</button>
+            <button class="chip" onclick="quickSearch('libros de biologia')">🧬 Biología</button>
+            <button class="chip" onclick="quickSearch('cuentos')">📖 Cuentos</button>
         </div>
     </section>
 
-    <div id="login-modal" class="modal">
-        <div class="modal-content login-content">
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
             <span class="close-modal" id="close-login">&times;</span>
-            <h2>🔐 Iniciar Sesión</h2>
-            <form id="login-form">
-                <div class="form-group"><label>Usuario</label><input type="text" id="login-username" required placeholder="Tu usuario"></div>
-                <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" required placeholder="Tu contraseña"></div>
-                <button type="submit" class="btn-primary">Ingresar</button>
-            </form>
-            <div id="login-error" class="error-msg" style="display:none;"></div>
+            <div class="login-content">
+                <h2>🔐 Iniciar Sesión</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-username">Usuario</label>
+                        <input type="text" id="login-username" required placeholder="Tu usuario">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Contraseña</label>
+                        <input type="password" id="login-password" required placeholder="Tu contraseña">
+                    </div>
+                    <button type="submit" class="btn-primary">Ingresar</button>
+                    <div class="error-msg" id="login-error" style="display:none;"></div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <script src="/static/js/main.js"></script>
-    <script src="/static/js/chat.js"></script>
-    <script src="/static/js/auth.js"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
