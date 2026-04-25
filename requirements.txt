@@ -4,5 +4,3 @@ Werkzeug==3.0.1
 pandas
 openpyxl==3.1.2
 gunicorn==21.2.0
-# En requirements.txt
-Flask-Login  # Para mejor manejo de sesiones
