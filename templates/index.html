@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Welcome Modal -->
     <div class="welcome-modal" id="welcome-modal">
         <div class="welcome-content">
             <div class="welcome-icon">🐶</div>
@@ -18,7 +17,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header class="header">
         <div class="header-top">
             <div class="logo">
@@ -33,24 +31,21 @@
             <a href="/mis-libros" class="nav-link" id="nav-mis-libros" style="display:none;">Mis Libros</a>
             <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
             <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
-            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Gestión Libros</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Gestión de Libros</a>
             <a href="/logs" class="nav-link" id="nav-logs" style="display:none;">Logs Admin</a>
         </nav>
     </header>
 
-    <!-- Hero -->
     <section class="hero">
         <h2>Tu asistente de biblioteca inteligente</h2>
         <p>Busca libros por título, autor, categoría o tema.</p>
     </section>
 
-    <!-- Chat -->
     <main class="chat-section">
         <div class="chat-container">
             <div class="chat-header">
                 <div class="chat-avatar">
                     <div class="avatar-chat">
-                        <!-- Golden Retriever Avatar SVG -->
                         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                             <path d="M30 60 Q30 30 50 30 Q70 30 70 60 Z" fill="#d4a373"/>
                             <path d="M25 30 Q10 40 15 60 Z" fill="#a67c52"/>
@@ -74,7 +69,6 @@
             <div class="chat-messages" id="chat-messages">
                 <div class="message bot">
                     <div class="message-avatar">
-                        <!-- SVG Dog Small -->
                         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                             <path d="M30 60 Q30 30 50 30 Q70 30 70 60 Z" fill="#d4a373"/>
                             <ellipse cx="50" cy="60" rx="15" ry="12" fill="#f3e5ab"/>
@@ -97,7 +91,6 @@
         </div>
     </main>
 
-    <!-- Suggestions -->
     <section class="suggestions">
         <h3>💡 Búsquedas populares</h3>
         <div class="suggestion-chips">
@@ -107,7 +100,6 @@
         </div>
     </section>
 
-    <!-- Login Modal -->
     <div class="modal" id="login-modal">
         <div class="modal-content">
             <span class="close-modal" id="close-login">&times;</span>

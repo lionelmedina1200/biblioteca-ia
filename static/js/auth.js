@@ -25,12 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateUI(usuario) {
         if (!userMenu) return;
-
         if (!usuario) {
-            userMenu.innerHTML = `
-                <div class="avatar" id="avatar-login" title="Iniciar sesión">
-                    <svg viewBox="0 0 100 100" width="40" height="40"><circle cx="50" cy="35" r="22" fill="#fff"/><ellipse cx="50" cy="85" rx="35" ry="25" fill="#fff"/><circle cx="50" cy="50" r="48" fill="none" stroke="#c0392b" stroke-width="4"/></svg>
-                </div>`;
+            userMenu.innerHTML = `<div class="avatar" id="avatar-login" title="Iniciar sesión"><svg viewBox="0 0 100 100" width="40" height="40"><circle cx="50" cy="35" r="22" fill="#fff"/><ellipse cx="50" cy="85" rx="35" ry="25" fill="#fff"/><circle cx="50" cy="50" r="48" fill="none" stroke="#c0392b" stroke-width="4"/></svg></div>`;
             document.getElementById('avatar-login').onclick = () => { if(loginModal) loginModal.style.display = 'block'; };
             if(navDashboard) navDashboard.style.display = 'none';
             if(navRegistro) navRegistro.style.display = 'none';
@@ -38,11 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(navLogs) navLogs.style.display = 'none';
             if(navMisLibros) navMisLibros.style.display = 'none';
         } else {
-            userMenu.innerHTML = `
-                <div class="user-info">
-                    <span>Hola, ${usuario.nombre}</span>
-                    <button id="btn-logout" class="btn-logout">Salir</button>
-                </div>`;
+            userMenu.innerHTML = `<div class="user-info"><span>Hola, ${usuario.nombre}</span><button id="btn-logout" class="btn-logout">Salir</button></div>`;
             document.getElementById('btn-logout').onclick = async () => {
                 await fetch('/api/logout', { method: 'POST' });
                 alert('✅ Se cerró tu sesión correctamente.');
@@ -54,13 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(navDashboard) navDashboard.style.display = 'block';
                 if(navRegistro) navRegistro.style.display = 'block';
                 if(navLibros) navLibros.style.display = 'block';
-                if(navMisLibros) navMisLibros.style.display = 'block';
+                if(navMisLibros) navMisLibros.style.display = 'none'; // OCULTO PARA BIBLIO
                 if(navLogs) navLogs.style.display = 'none';
             } else if (usuario.rol === 'admin') {
                 if(navLogs) navLogs.style.display = 'block';
                 if(navMisLibros) navMisLibros.style.display = 'block';
             } else {
-                // Alumno
                 if(navMisLibros) navMisLibros.style.display = 'block';
             }
         }
@@ -82,11 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
-
             try {
                 const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
                 const data = await res.json();
