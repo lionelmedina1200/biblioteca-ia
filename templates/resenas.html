@@ -18,7 +18,7 @@
 
         /* ── Formulario ── */
         .form-resena { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.8rem; position:sticky; top:80px; }
-        .form-resena h3 { color:var(--azul-claro); margin-bottom:1.2rem; font-size:1.1rem; }
+        .form-resena h3 { color:var(--gold); margin-bottom:1.2rem; font-size:1.1rem; }
         .stars-selector { display:flex; gap:8px; margin-bottom:1.2rem; flex-direction:row-reverse; justify-content:flex-end; }
         .stars-selector input { display:none; }
         .stars-selector label {
@@ -26,7 +26,7 @@
         }
         .stars-selector label:hover,
         .stars-selector label:hover ~ label,
-        .stars-selector input:checked ~ label { color:#f59e0b; }
+        .stars-selector input:checked ~ label { color:#10b981; }
         .stars-selector { flex-direction:row; }
         .star-lbl { font-size:2rem; cursor:pointer; color:#334155; transition:color 0.15s; user-select:none; }
         textarea.form-input { 
@@ -45,7 +45,7 @@
             box-sizing: border-box;
         }
         textarea.form-input:focus {
-            border-color: var(--azul-claro);
+            border-color: var(--gold);
         }
         textarea.form-input::placeholder {
             color: var(--text-muted);
@@ -55,7 +55,7 @@
         .user-badge .ubadge-avatar { width:36px;height:36px;border-radius:50%;background:var(--azul-marino);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;font-weight:600; }
         .user-badge span { font-size:0.9rem; color:var(--text-heading); font-weight:500; }
         .login-prompt { text-align:center; padding:2rem 1rem; color:var(--text-muted); }
-        .login-prompt a { color:var(--azul-claro); cursor:pointer; }
+        .login-prompt a { color:var(--gold); cursor:pointer; }
 
         /* ── Lista de reseñas ── */
         .resenas-list { display:flex; flex-direction:column; gap:1rem; }
@@ -66,12 +66,12 @@
         .resena-meta { flex:1; }
         .resena-nombre { font-weight:600; color:var(--text-heading); font-size:0.95rem; }
         .resena-email { font-size:0.78rem; color:var(--text-muted); }
-        .resena-stars { color:#f59e0b; font-size:1.1rem; letter-spacing:1px; }
+        .resena-stars { color:#10b981; font-size:1.1rem; letter-spacing:1px; }
         .resena-fecha { font-size:0.75rem; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
         .resena-texto { color:var(--text-main); font-size:0.92rem; line-height:1.6; margin:0; }
         .rating-summary { display:flex; align-items:center; gap:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.4rem; margin-bottom:1rem; }
         .rating-big { font-size:2.5rem; font-weight:700; color:var(--text-heading); line-height:1; }
-        .rating-stars-big { color:#f59e0b; font-size:1.4rem; }
+        .rating-stars-big { color:#10b981; font-size:1.4rem; }
         .rating-count { color:var(--text-muted); font-size:0.85rem; }
         .no-resenas { color:var(--text-muted); text-align:center; padding:2rem; font-size:0.95rem; }
         .success-msg { color:#4ade80; background:#14532d22; border:1px solid #14532d; border-radius:8px; padding:10px 14px; margin-top:0.8rem; display:none; font-size:0.9rem; }
@@ -160,6 +160,7 @@
         </div>
     </div>
 
+    <script src="/static/js/modal.js"></script>
     <script src="/static/js/auth.js"></script>
     <script>
     // ── Estrellas interactivas ──────────────────────────────
@@ -171,13 +172,16 @@
             : `<div class="ubadge-avatar">${(usuario.nombre||usuario.username||'U')[0].toUpperCase()}</div>`;
         document.getElementById('resena-form-inner').innerHTML = `
             <div class="user-badge">${pic}<span>${usuario.email || usuario.username}</span></div>
-            <label style="display:block;margin-bottom:0.5rem;color:var(--azul-claro);font-size:0.88rem;font-weight:600;">Calificación</label>
+            <label style="display:block;margin-bottom:0.5rem;color:var(--gold);font-size:0.88rem;font-weight:600;">Calificación</label>
             <div id="stars-row" style="display:flex;gap:6px;margin-bottom:1.2rem;font-size:2.2rem;"></div>
             <div class="form-group">
                 <label>Tu opinión</label>
                 <textarea id="resena-texto" class="form-input" placeholder="Contá qué te gustó, qué mejorarías..." rows="5"></textarea>
             </div>
-            <button class="btn-primary" onclick="enviarResena()" style="width:100%;">⭐ Publicar reseña</button>
+            <div style="display:flex;gap:0.8rem;flex-wrap:wrap;">
+                <button class="btn-primary" onclick="enviarResena()" style="flex:1;">Publicar reseña</button>
+                <button id="btn-borrar-resena" onclick="borrarResena()" style="display:none;padding:10px 16px;background:transparent;border:2px solid #7f1d1d;color:#f87171;border-radius:50px;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Borrar mi reseña</button>
+            </div>
             <div id="resena-ok" class="success-msg"></div>
             <div id="resena-err" class="error-msg"></div>
         `;
@@ -193,7 +197,7 @@
             const s = document.createElement('span');
             s.textContent = i <= n ? '★' : '☆';
             s.style.cursor = 'pointer';
-            s.style.color = i <= n ? '#f59e0b' : '#475569';
+            s.style.color = i <= n ? '#10b981' : '#475569';
             s.style.transition = 'color 0.1s';
             s.onmouseover = () => highlightStars(i);
             s.onmouseout  = () => renderStars(selectedStars);
@@ -204,7 +208,7 @@
 
     function highlightStars(n) {
         const spans = document.querySelectorAll('#stars-row span');
-        spans.forEach((s,i) => { s.style.color = i < n ? '#f59e0b' : '#475569'; });
+        spans.forEach((s,i) => { s.style.color = i < n ? '#10b981' : '#475569'; });
     }
 
     async function enviarResena() {
@@ -222,7 +226,8 @@
         });
         const data = await res.json();
         if (res.ok) {
-            okEl.textContent = '✅ ¡Reseña publicada!'; okEl.style.display='block';
+            okEl.textContent = 'Reseña publicada correctamente.'; okEl.style.display='block';
+            const btnBorrar = document.getElementById('btn-borrar-resena'); if(btnBorrar) btnBorrar.style.display='inline-flex';
             loadResenas();
         } else {
             errEl.textContent = '❌ ' + (data.error||'Error al publicar'); errEl.style.display='block';
@@ -280,8 +285,36 @@
     });
 
     // Se llama desde auth.js cuando el usuario está logueado
-    window._onUserLoaded = (usuario) => {
-        if (usuario) renderFormLogueado(usuario);
+    async function borrarResena() {
+        const ok = await modalConfirm({
+            titulo: 'Borrar reseña',
+            mensaje: '¿Querés eliminar tu reseña? Esta acción no se puede deshacer.',
+            icono: '🗑️', peligro: true, btnOk: 'Borrar', btnNo: 'Cancelar'
+        });
+        if (!ok) return;
+        const res = await fetch('/api/resenas/mia', { method: 'DELETE' });
+        if (res.ok) {
+            document.getElementById('resena-ok').textContent = 'Reseña eliminada.';
+            document.getElementById('resena-ok').style.display = 'block';
+            document.getElementById('btn-borrar-resena').style.display = 'none';
+            loadResenas();
+        }
+    }
+
+    window._onUserLoaded = async (usuario) => {
+        if (usuario) {
+            renderFormLogueado(usuario);
+            // Verificar si ya tiene reseña para mostrar botón borrar
+            const r = await fetch('/api/resenas');
+            const lista = await r.json();
+            const miResena = lista.find(x => x.email === usuario.email);
+            if (miResena) {
+                setTimeout(() => {
+                    const btn = document.getElementById('btn-borrar-resena');
+                    if (btn) btn.style.display = 'inline-flex';
+                }, 300);
+            }
+        }
     };
     </script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
