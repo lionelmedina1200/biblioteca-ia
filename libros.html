@@ -3,32 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Libros · Biblioteca IA</title>
-    <meta name="description" content="Administración completa del catálogo de libros.">
-    <meta property="og:title" content="Gestión de Libros · Biblioteca IA">
-    <meta property="og:description" content="Administración completa del catálogo de libros.">
-    <meta property="og:type" content="website">
+    <title>Libros</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
     <header class="header">
-        <div class="header-top">
-            <div class="logo"><span class="logo-icon">📚</span><h1>Gestión de Libros</h1></div>
-            <div id="user-menu"></div>
-        </div>
-
-        <nav class="header-nav"><div class="header-nav-inner">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Gestión de Libros</h1></div>
+        <nav class="header-nav">
             <a href="/" class="nav-link">Inicio</a>
             <a href="/checkin" class="nav-link">Check-in</a>
             <a href="/dashboard" class="nav-link">Dashboard</a>
             <a href="/registro" class="nav-link">Registrar Alumno</a>
             <a href="/libros" class="nav-link active">Libros</a>
-        </div></nav>
+        </nav>
+        <div id="user-menu"></div>
     </header>
 
     <!-- MODAL AGREGAR LIBRO -->
@@ -104,6 +92,5 @@
 
     <script src="/static/js/auth.js"></script>
     <script src="/static/js/libros.js"></script>
-    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>
