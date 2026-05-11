@@ -43,11 +43,11 @@ def make_google_flow():
                 "client_secret": GOOGLE_CLIENT_SECRET,
                 "auth_uri":      "https://accounts.google.com/o/oauth2/auth",
                 "token_uri":     "https://oauth2.googleapis.com/token",
-                "redirect_uris": ["https://pruebas-biblio-ia.onrender.com/auth/google/callback"],
+                "redirect_uris": ["https://biblioteca-ia-y3d4.onrender.com/auth/google/callback"],
             }
         },
         scopes=GOOGLE_SCOPES,
-        redirect_uri="https://pruebas-biblio-ia.onrender.com/auth/google/callback",
+        redirect_uri="https://biblioteca-ia-y3d4.onrender.com/auth/google/callback",
     )
 
 @app.route("/auth/google")
