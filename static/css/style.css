@@ -94,7 +94,7 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
     flex-shrink: 0;
 }
 .logo-icon { font-size: 1.6rem; }
-.logo h1 { font-weight: 700; letter-spacing: 0.5px; margin: 0; background: linear-gradient(135deg, #3b82f6, #3b82f6);  }
+.logo h1 { font-weight: 700; letter-spacing: 0.5px; margin: 0; background: linear-gradient(135deg, #3b82f6, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
 .header-nav { 
     display: flex;
