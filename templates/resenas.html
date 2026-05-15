@@ -76,6 +76,9 @@
         .no-resenas { color:var(--text-muted); text-align:center; padding:2rem; font-size:0.95rem; }
         .success-msg { color:#4ade80; background:#14532d22; border:1px solid #14532d; border-radius:8px; padding:10px 14px; margin-top:0.8rem; display:none; font-size:0.9rem; }
         .error-msg { color:#f87171; background:#7f1d1d22; border:1px solid #7f1d1d; border-radius:8px; padding:10px 14px; margin-top:0.8rem; display:none; font-size:0.9rem; }
+        .resena-card.modo-borrar { cursor:pointer; border:1.5px solid #ef4444 !important; transition: all 0.2s; }
+        .resena-card.modo-borrar:hover { background: rgba(239,68,68,0.08); transform: scale(1.01); }
+        #borrar-hint { display:none; color:#f87171; font-size:0.82rem; margin-top:0.6rem; text-align:center; }
     </style>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -163,29 +166,37 @@
     <script src="/static/js/modal.js"></script>
     <script src="/static/js/auth.js"></script>
     <script>
-    // ── Estrellas interactivas ──────────────────────────────
     let selectedStars = 0;
+    let _usuarioActual = null;
+    let modoSeleccion = false;
 
+    // ── Formulario de reseña ────────────────────────────────
     function renderFormLogueado(usuario) {
         const pic = usuario.picture
             ? `<img src="${usuario.picture}" class="ubadge-avatar" alt="">`
             : `<div class="ubadge-avatar">${(usuario.nombre||usuario.username||'U')[0].toUpperCase()}</div>`;
-        document.getElementById('resena-form-inner').innerHTML = `
-            <div class="user-badge">${pic}<span>${usuario.email || usuario.username}</span></div>
-            <label style="display:block;margin-bottom:0.5rem;color:var(--gold);font-size:0.88rem;font-weight:600;">Calificación</label>
-            <div id="stars-row" style="display:flex;gap:6px;margin-bottom:1.2rem;font-size:2.2rem;"></div>
-            <div class="form-group">
-                <label>Tu opinión</label>
-                <textarea id="resena-texto" class="form-input" placeholder="Contá qué te gustó, qué mejorarías..." rows="5"></textarea>
-            </div>
-            <div style="display:flex;gap:0.8rem;flex-wrap:wrap;">
-                <button class="btn-primary" onclick="enviarResena()" style="flex:1;">Publicar reseña</button>
-                <button id="btn-borrar-resena" onclick="borrarResena()" style="display:none;padding:10px 16px;background:transparent;border:2px solid #7f1d1d;color:#f87171;border-radius:50px;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Borrar mi reseña</button>
-            </div>
-            <div id="resena-ok" class="success-msg"></div>
-            <div id="resena-err" class="error-msg"></div>
-        `;
-        renderStars(0);
+
+        if (usuario.rol === 'bibliotecario') {
+            document.getElementById('resena-form-inner').innerHTML = `
+                <div style="padding:1rem;background:var(--bg-input);border-radius:10px;border:1px solid var(--border);">
+                    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Como bibliotecaria podés eliminar cualquier reseña. Activá el modo selección y tocá la que querés borrar.</p>
+                    <button id="btn-modo-borrar" class="btn-primary" onclick="activarModoBorrar()" style="width:100%;">Seleccionar reseña a eliminar</button>
+                    <p id="borrar-hint" style="display:none;color:#f87171;font-size:0.82rem;margin-top:0.6rem;text-align:center;">Tocá la reseña que querés eliminar</p>
+                </div>`;
+        } else {
+            document.getElementById('resena-form-inner').innerHTML = `
+                <div class="user-badge">${pic}<span>${usuario.email || usuario.username}</span></div>
+                <label style="display:block;margin-bottom:0.5rem;color:var(--azul-claro);font-size:0.88rem;font-weight:600;">Calificación</label>
+                <div id="stars-row" style="display:flex;gap:6px;margin-bottom:1.2rem;font-size:2.2rem;"></div>
+                <div class="form-group">
+                    <label>Tu opinión</label>
+                    <textarea id="resena-texto" class="form-input" placeholder="Contá qué te gustó, qué mejorarías..." rows="5"></textarea>
+                </div>
+                <button class="btn-primary" onclick="enviarResena()" style="width:100%;">Publicar reseña</button>
+                <div id="resena-ok" class="success-msg"></div>
+                <div id="resena-err" class="error-msg"></div>`;
+            renderStars(0);
+        }
     }
 
     function renderStars(n) {
@@ -207,8 +218,9 @@
     }
 
     function highlightStars(n) {
-        const spans = document.querySelectorAll('#stars-row span');
-        spans.forEach((s,i) => { s.style.color = i < n ? '#3b82f6' : '#475569'; });
+        document.querySelectorAll('#stars-row span').forEach((s,i) => {
+            s.style.color = i < n ? '#3b82f6' : '#475569';
+        });
     }
 
     async function enviarResena() {
@@ -216,84 +228,24 @@
         const okEl  = document.getElementById('resena-ok');
         const errEl = document.getElementById('resena-err');
         okEl.style.display = 'none'; errEl.style.display = 'none';
-
-        if (!selectedStars) { errEl.textContent = '⚠️ Elegí una calificación.'; errEl.style.display='block'; return; }
-        if (!texto)         { errEl.textContent = '⚠️ Escribí tu opinión.';      errEl.style.display='block'; return; }
-
+        if (!selectedStars) { errEl.textContent = 'Elegí una calificación.'; errEl.style.display='block'; return; }
+        if (!texto) { errEl.textContent = 'Escribí tu opinión.'; errEl.style.display='block'; return; }
         const res = await fetch('/api/resenas', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ estrellas: selectedStars, comentario: texto })
         });
         const data = await res.json();
         if (res.ok) {
-            okEl.textContent = 'Reseña publicada correctamente.'; okEl.style.display='block';
-            const btnBorrar = document.getElementById('btn-borrar-resena'); if(btnBorrar) btnBorrar.style.display='inline-flex';
+            okEl.textContent = 'Reseña publicada correctamente.';
+            okEl.style.display = 'block';
             loadResenas();
         } else {
-            errEl.textContent = '❌ ' + (data.error||'Error al publicar'); errEl.style.display='block';
+            errEl.textContent = data.error || 'Error al publicar';
+            errEl.style.display = 'block';
         }
     }
 
-    // ── Usuario actual ──────────────────────────────────────
-    let _usuarioActual = null;
-
-    // ── Cargar reseñas ──────────────────────────────────────
-    async function loadResenas() {
-        const res  = await fetch('/api/resenas');
-        const list = await res.json();
-        const cont = document.getElementById('resenas-list');
-        const summ = document.getElementById('rating-summary');
-
-        if (!list.length) {
-            cont.innerHTML = '<div class="no-resenas">Todavía no hay reseñas. ¡Sé el primero!</div>';
-            summ.style.display = 'none';
-            return;
-        }
-
-        const avg = (list.reduce((a,r)=>a+r.estrellas,0)/list.length).toFixed(1);
-        document.getElementById('avg-rating').textContent  = avg;
-        document.getElementById('avg-stars').textContent   = '★'.repeat(Math.round(avg)) + '☆'.repeat(5-Math.round(avg));
-        document.getElementById('rating-count').textContent = `${list.length} reseña${list.length!==1?'s':''}`;
-        summ.style.display = 'flex';
-
-        const esBiblio = _usuarioActual?.rol === 'bibliotecario';
-
-        cont.innerHTML = list.map(r => {
-            const letra  = (r.nombre||r.email||'?')[0].toUpperCase();
-            const pic    = r.picture ? `<img src="${r.picture}" class="resena-avatar" alt="">` : `<div class="resena-avatar-letter">${letra}</div>`;
-            const stars  = '★'.repeat(r.estrellas) + '☆'.repeat(5-r.estrellas);
-            const fecha  = new Date(r.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
-            const emailParts = (r.email||'').split('@');
-            const emailMask  = emailParts[0].slice(0,3) + '***@' + (emailParts[1]||'');
-            // Botón borrar: solo aparece en la reseña propia del alumno
-            const esMia = _usuarioActual && r.email === _usuarioActual.email;
-            const btnBorrarCard = esMia && !esBiblio
-                ? `<button onclick="borrarResenaPropia()" style="margin-top:0.6rem;padding:5px 14px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:20px;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Borrar mi reseña</button>`
-                : '';
-            return `<div class="resena-card" id="resena-card-${r.id}">
-                <div class="resena-header">
-                    ${pic}
-                    <div class="resena-meta">
-                        <div class="resena-nombre">${r.nombre}</div>
-                        <div class="resena-email">${emailMask}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="resena-stars">${stars}</div>
-                        <div class="resena-fecha">${fecha}</div>
-                    </div>
-                </div>
-                <p class="resena-texto">${r.comentario.replace(/</g,'&lt;')}</p>
-                ${btnBorrarCard}
-            </div>`;
-        }).join('');
-    }
-
-    // ── Init ────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-        loadResenas();
-    });
-
-    // Borrar reseña propia (alumno)
+    // ── Borrar reseña propia (alumno) ───────────────────────
     async function borrarResenaPropia() {
         const ok = await modalConfirm({
             titulo: 'Borrar reseña',
@@ -308,10 +260,41 @@
         }
     }
 
-    // Borrar cualquier reseña (bibliotecario)
-    async function borrarResenaAdmin(id, nombre) {
+    // ── Borrar cualquier reseña (bibliotecaria) ─────────────
+    function activarModoBorrar() {
+        modoSeleccion = true;
+        const btn = document.getElementById('btn-modo-borrar');
+        if (btn) {
+            btn.textContent = 'Cancelar selección';
+            btn.style.background = '#374151';
+            btn.onclick = cancelarModoBorrar;
+        }
+        document.getElementById('borrar-hint').style.display = 'block';
+        document.querySelectorAll('.resena-card').forEach(card => {
+            card.classList.add('modo-borrar');
+        });
+    }
+
+    function cancelarModoBorrar() {
+        modoSeleccion = false;
+        const btn = document.getElementById('btn-modo-borrar');
+        if (btn) {
+            btn.textContent = 'Seleccionar reseña a eliminar';
+            btn.style.background = '';
+            btn.onclick = activarModoBorrar;
+        }
+        const hint = document.getElementById('borrar-hint');
+        if (hint) hint.style.display = 'none';
+        document.querySelectorAll('.resena-card').forEach(card => {
+            card.classList.remove('modo-borrar');
+        });
+    }
+
+    async function clickResenaAdmin(event, id, nombre) {
+        if (!modoSeleccion) return;
+        event.stopPropagation();
         const ok = await modalConfirm({
-            titulo: 'Borrar reseña',
+            titulo: 'Eliminar reseña',
             mensaje: `¿Seguro que querés eliminar la reseña de ${nombre}?`,
             icono: '🗑️', peligro: true, btnOk: 'Eliminar', btnNo: 'Cancelar'
         });
@@ -319,50 +302,85 @@
         const res = await fetch(`/api/resenas/${id}`, { method: 'DELETE' });
         if (res.ok) {
             await modalAlert({ titulo: 'Eliminada', mensaje: 'La reseña fue eliminada.', tipo: 'success' });
+            cancelarModoBorrar();
             loadResenas();
         }
     }
+
+    // ── Cargar reseñas ──────────────────────────────────────
+    async function loadResenas() {
+        const res  = await fetch('/api/resenas');
+        const list = await res.json();
+        const cont = document.getElementById('resenas-list');
+        const summ = document.getElementById('rating-summary');
+
+        if (!list.length) {
+            cont.innerHTML = '<div class="no-resenas">Todavía no hay reseñas. ¡Sé el primero!</div>';
+            summ.style.display = 'none';
+            return;
+        }
+
+        const avg = (list.reduce((a,r) => a + r.estrellas, 0) / list.length).toFixed(1);
+        document.getElementById('avg-rating').textContent  = avg;
+        document.getElementById('avg-stars').textContent   = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
+        document.getElementById('rating-count').textContent = `${list.length} reseña${list.length !== 1 ? 's' : ''}`;
+        summ.style.display = 'flex';
+
+        const esBiblio = _usuarioActual?.rol === 'bibliotecario';
+
+        cont.innerHTML = list.map(r => {
+            const letra = (r.nombre || r.email || '?')[0].toUpperCase();
+            const pic   = r.picture
+                ? `<img src="${r.picture}" class="resena-avatar" alt="">`
+                : `<div class="resena-avatar-letter">${letra}</div>`;
+            const stars = '★'.repeat(r.estrellas) + '☆'.repeat(5 - r.estrellas);
+            const fecha = new Date(r.fecha).toLocaleDateString('es-AR', {day:'2-digit', month:'short', year:'numeric'});
+            const emailParts = (r.email || '').split('@');
+            const emailMask  = emailParts[0].slice(0, 3) + '***@' + (emailParts[1] || '');
+            const esPropia   = _usuarioActual && r.email === _usuarioActual.email;
+            const nombreSafe = (r.nombre || '').replace(/'/g, '');
+
+            // Botón borrar propia (solo alumno en su reseña)
+            const btnPropia = esPropia && !esBiblio
+                ? `<button onclick="borrarResenaPropia()" style="margin-top:0.6rem;padding:5px 14px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:20px;font-size:0.8rem;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Borrar mi reseña</button>`
+                : '';
+
+            // Click para bibliotecaria
+            const onclickBiblio = esBiblio
+                ? `onclick="clickResenaAdmin(event, ${r.id}, '${nombreSafe}')"`
+                : '';
+
+            return `<div class="resena-card" id="resena-card-${r.id}" ${onclickBiblio}>
+                <div class="resena-header">
+                    ${pic}
+                    <div class="resena-meta">
+                        <div class="resena-nombre">${r.nombre}</div>
+                        <div class="resena-email">${emailMask}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="resena-stars">${stars}</div>
+                        <div class="resena-fecha">${fecha}</div>
+                    </div>
+                </div>
+                <p class="resena-texto">${r.comentario.replace(/</g, '&lt;')}</p>
+                ${btnPropia}
+            </div>`;
+        }).join('');
+    }
+
+    // ── Init ────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        loadResenas();
+    });
 
     window._onUserLoaded = async (usuario) => {
         if (usuario) {
             _usuarioActual = usuario;
             renderFormLogueado(usuario);
-
-            const esBiblio = usuario.rol === 'bibliotecario';
-
-            if (esBiblio) {
-                // Bibliotecaria: mostrar panel de borrar reseñas
-                document.getElementById('resena-form-inner').innerHTML = `
-                    <div style="padding:1rem;background:var(--bg-input);border-radius:10px;border:1px solid var(--border);">
-                        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Como bibliotecaria podés eliminar cualquier reseña. Hacé clic en la reseña que querés borrar.</p>
-                        <button class="btn-primary" onclick="activarModoBorrar()" style="width:100%;">Seleccionar reseña a eliminar</button>
-                    </div>`;
-            }
-
             await loadResenas();
         }
     };
-
-    // Modo borrar bibliotecaria: hace que cada card sea clickeable para borrar
-    async function activarModoBorrar() {
-        await modalAlert({ titulo: 'Modo selección', mensaje: 'Hacé clic en la reseña que querés eliminar.', tipo: 'info' });
-        const cards = document.querySelectorAll('.resena-card');
-        cards.forEach(card => {
-            card.style.cursor = 'pointer';
-            card.style.border = '1.5px solid #7f1d1d';
-            card.style.opacity = '0.85';
-            card.onclick = async function() {
-                const id = card.id.replace('resena-card-', '');
-                const nombre = card.querySelector('.resena-nombre')?.textContent || 'este usuario';
-                await borrarResenaAdmin(id, nombre);
-                card.style.cursor = '';
-                card.style.border = '';
-                card.style.opacity = '';
-                card.onclick = null;
-            };
-        });
-    }
     </script>
-    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
+        <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>
