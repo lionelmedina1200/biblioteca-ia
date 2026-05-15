@@ -3,20 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Alumno</title>
+    <title>Registrar Alumno · Biblioteca IA</title>
+    <meta name="description" content="Alta de nuevos alumnos en el sistema de biblioteca.">
+    <meta property="og:title" content="Registrar Alumno · Biblioteca IA">
+    <meta property="og:description" content="Alta de nuevos alumnos en el sistema de biblioteca.">
+    <meta property="og:type" content="website">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
     <header class="header">
-        <div class="logo"><span class="logo-icon">📚</span><h1>Registrar Alumno</h1></div>
-        <nav class="header-nav">
+        <div class="header-top">
+            <div class="logo"><span class="logo-icon">📚</span><h1>Registrar Alumno</h1></div>
+            <div id="user-menu"></div>
+        </div>
+
+        <nav class="header-nav"><div class="header-nav-inner">
             <a href="/" class="nav-link">Inicio</a>
             <a href="/checkin" class="nav-link">Check-in</a>
-            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/dashboard" class="nav-link dashboard-link">Dashboard</a>
             <a href="/registro" class="nav-link active">Registrar Alumno</a>
             <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
-        </nav>
-        <div id="user-menu"></div>
+        </div></nav>
     </header>
 
     <main class="checkin-main">
@@ -37,6 +49,7 @@
         </div>
     </main>
 
+    <script src="/static/js/modal.js"></script>
     <script src="/static/js/auth.js"></script>
     <script>
         document.getElementById('register-form').onsubmit = async e => {
@@ -59,5 +72,6 @@
         }
         loadAlumnos();
     </script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>

@@ -43,11 +43,11 @@ def make_google_flow():
                 "client_secret": GOOGLE_CLIENT_SECRET,
                 "auth_uri":      "https://accounts.google.com/o/oauth2/auth",
                 "token_uri":     "https://oauth2.googleapis.com/token",
-                "redirect_uris": ["https://biblioteca-ia-y3d4.onrender.com/auth/google/callback"],
+                "redirect_uris": ["https://pruebas-biblio-ia.onrender.com/auth/google/callback"],
             }
         },
         scopes=GOOGLE_SCOPES,
-        redirect_uri="https://biblioteca-ia-y3d4.onrender.com/auth/google/callback",
+        redirect_uri="https://pruebas-biblio-ia.onrender.com/auth/google/callback",
     )
 
 @app.route("/auth/google")
@@ -474,7 +474,8 @@ def get_chat_historial():
             SELECT DISTINCT ON (sesion_id)
                 sesion_id,
                 MIN(fecha) OVER (PARTITION BY sesion_id) as inicio,
-                FIRST_VALUE(mensaje) OVER (PARTITION BY sesion_id ORDER BY fecha) as primer_msg
+                FIRST_VALUE(mensaje) OVER (PARTITION BY sesion_id ORDER BY fecha) as primer_msg,
+                FIRST_VALUE(nombre_chat) OVER (PARTITION BY sesion_id ORDER BY fecha DESC) as nombre_chat
             FROM chat_historial
             WHERE usuario_id = %s AND rol = 'user'
             ORDER BY sesion_id, inicio DESC
@@ -515,6 +516,73 @@ def guardar_mensaje_chat():
         conn = get_db(); c = conn.cursor()
         c.execute("INSERT INTO chat_historial (usuario_id, sesion_id, rol, mensaje) VALUES (%s,%s,%s,%s)",
                   (u["id"], sesion, rol, mensaje))
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"ok": False}), 500
+
+@app.route("/api/chat/renombrar", methods=["PUT"])
+@login_required
+def renombrar_chat():
+    try:
+        data     = request.json or {}
+        sesion   = data.get("sesion_id", "")
+        nombre   = data.get("nombre", "").strip()[:60]
+        if not sesion or not nombre:
+            return jsonify({"ok": False}), 400
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        # Guardar nombre en tabla separada o usar UPDATE con nombre_chat si existe
+        try:
+            c.execute("ALTER TABLE chat_historial ADD COLUMN IF NOT EXISTS nombre_chat TEXT")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        c.execute("UPDATE chat_historial SET nombre_chat=%s WHERE usuario_id=%s AND sesion_id=%s",
+                  (nombre, u["id"], sesion))
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"ok": False}), 500
+
+@app.route("/api/chat/eliminar/<sesion_id>", methods=["DELETE"])
+@login_required
+def eliminar_chat(sesion_id):
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("DELETE FROM chat_historial WHERE usuario_id=%s AND sesion_id=%s",
+                  (u["id"], sesion_id))
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"ok": False}), 500
+
+@app.route("/api/resenas/mia", methods=["DELETE"])
+@login_required
+def borrar_resena_propia():
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("DELETE FROM resenas WHERE usuario_id=%s", (u["id"],))
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"ok": False}), 500
+
+@app.route("/api/resenas/<int:resena_id>", methods=["DELETE"])
+@login_required
+def borrar_resena_por_id(resena_id):
+    try:
+        u = session["usuario"]
+        if u.get("rol") != "bibliotecario":
+            return jsonify({"error": "Sin permisos"}), 403
+        conn = get_db(); c = conn.cursor()
+        c.execute("DELETE FROM resenas WHERE id=%s", (resena_id,))
         conn.commit(); c.close(); conn.close()
         return jsonify({"ok": True})
     except Exception:
