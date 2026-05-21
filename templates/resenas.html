@@ -15,7 +15,7 @@
         .resenas-hero p  { color:var(--text-muted); font-size:1rem; }
         .resenas-layout { display:grid; grid-template-columns:1fr 1fr; gap:2rem; max-width:1100px; margin:0 auto; padding:0 1rem 3rem; }
         @media(max-width:700px){ .resenas-layout{ grid-template-columns:1fr; } }
- 
+
         /* ── Formulario ── */
         .form-resena { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.8rem; position:sticky; top:80px; }
         .form-resena h3 { color:var(--gold); margin-bottom:1.2rem; font-size:1.1rem; }
@@ -56,7 +56,7 @@
         .user-badge span { font-size:0.9rem; color:var(--text-heading); font-weight:500; }
         .login-prompt { text-align:center; padding:2rem 1rem; color:var(--text-muted); }
         .login-prompt a { color:var(--gold); cursor:pointer; }
- 
+
         /* ── Lista de reseñas ── */
         .resenas-list { display:flex; flex-direction:column; gap:1rem; }
         .resena-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem 1.4rem; }
@@ -92,7 +92,7 @@
             <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
             <div class="user-menu" id="user-menu"></div>
         </div>
- 
+
         <nav class="header-nav"><div class="header-nav-inner">
             <a href="/" class="nav-link">Inicio</a>
             <a href="/checkin" class="nav-link">Check-in</a>
@@ -104,12 +104,12 @@
             <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
         </div></nav>
     </header>
- 
+
     <div class="resenas-hero">
         <h2>⭐ Reseñas de usuarios</h2>
         <p>¿Qué te pareció la Biblioteca IA? Dejá tu opinión.</p>
     </div>
- 
+
     <div class="resenas-layout">
         <!-- Columna izquierda: formulario -->
         <div>
@@ -122,7 +122,7 @@
                 </div>
             </div>
         </div>
- 
+
         <!-- Columna derecha: lista -->
         <div>
             <div id="rating-summary" class="rating-summary" style="display:none;">
@@ -137,7 +137,7 @@
             </div>
         </div>
     </div>
- 
+
     <!-- Modal login (mismo que index) -->
     <div id="login-modal" class="modal">
         <div class="modal-content login-content">
@@ -162,20 +162,63 @@
             <p class="google-note">Solo disponible para alumnos</p>
         </div>
     </div>
- 
-    <script src="/static/js/modal.js"></script>
+
     <script src="/static/js/auth.js"></script>
+    <script>
+    // ── Modal inline (evita problemas de carga) ─────────────
+    window.modalConfirm = function(o) {
+        return new Promise(function(resolve) {
+            var overlay = document.createElement('div');
+            overlay.className = 'custom-modal-overlay';
+            overlay.innerHTML =
+                '<div class="custom-modal-box">' +
+                    '<span class="custom-modal-icon">' + (o.icono||'❓') + '</span>' +
+                    '<div class="custom-modal-title">' + (o.titulo||'Confirmá') + '</div>' +
+                    '<div class="custom-modal-msg">' + (o.mensaje||'') + '</div>' +
+                    '<div class="custom-modal-btns">' +
+                        '<button class="custom-modal-btn-cancel" id="cm-no">' + (o.btnNo||'Cancelar') + '</button>' +
+                        '<button class="custom-modal-btn-confirm ' + (o.peligro?'danger':'') + '" id="cm-si">' + (o.btnOk||'Confirmar') + '</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+            function cerrar(r){ document.body.removeChild(overlay); resolve(r); }
+            overlay.querySelector('#cm-si').onclick  = function(){ cerrar(true); };
+            overlay.querySelector('#cm-no').onclick  = function(){ cerrar(false); };
+            overlay.onclick = function(e){ if(e.target===overlay) cerrar(false); };
+        });
+    };
+    window.modalAlert = function(o) {
+        return new Promise(function(resolve) {
+            var iconos = {success:'✅', error:'❌', info:'ℹ️', warning:'⚠️'};
+            var overlay = document.createElement('div');
+            overlay.className = 'custom-modal-overlay';
+            overlay.innerHTML =
+                '<div class="custom-modal-box">' +
+                    '<span class="custom-modal-icon">' + (iconos[o.tipo]||'ℹ️') + '</span>' +
+                    '<div class="custom-modal-title">' + (o.titulo||'Aviso') + '</div>' +
+                    '<div class="custom-modal-msg">' + (o.mensaje||'') + '</div>' +
+                    '<div class="custom-modal-btns">' +
+                        '<button class="custom-modal-btn-ok" id="cm-ok">Entendido</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+            function cerrar(){ document.body.removeChild(overlay); resolve(); }
+            overlay.querySelector('#cm-ok').onclick = cerrar;
+            overlay.onclick = function(e){ if(e.target===overlay) cerrar(); };
+        });
+    };
+    </script>
     <script>
     let selectedStars = 0;
     let _usuarioActual = null;
     let modoSeleccion = false;
- 
+
     // ── Formulario de reseña ────────────────────────────────
     function renderFormLogueado(usuario) {
         const pic = usuario.picture
             ? `<img src="${usuario.picture}" class="ubadge-avatar" alt="">`
             : `<div class="ubadge-avatar">${(usuario.nombre||usuario.username||'U')[0].toUpperCase()}</div>`;
- 
+
         if (usuario.rol === 'bibliotecario') {
             document.getElementById('resena-form-inner').innerHTML = `
                 <div style="padding:1rem;background:var(--bg-input);border-radius:10px;border:1px solid var(--border);">
@@ -198,7 +241,7 @@
             renderStars(0);
         }
     }
- 
+
     function renderStars(n) {
         selectedStars = n;
         const row = document.getElementById('stars-row');
@@ -216,13 +259,13 @@
             row.appendChild(s);
         }
     }
- 
+
     function highlightStars(n) {
         document.querySelectorAll('#stars-row span').forEach((s,i) => {
             s.style.color = i < n ? '#3b82f6' : '#475569';
         });
     }
- 
+
     async function enviarResena() {
         const texto = (document.getElementById('resena-texto')?.value || '').trim();
         const okEl  = document.getElementById('resena-ok');
@@ -244,10 +287,10 @@
             errEl.style.display = 'block';
         }
     }
- 
+
     // ── Borrar reseña propia (alumno) ───────────────────────
- 
- 
+
+
     // ── Borrar cualquier reseña (bibliotecaria) ─────────────
     function activarModoBorrar() {
         modoSeleccion = true;
@@ -262,7 +305,7 @@
             card.classList.add('modo-borrar');
         });
     }
- 
+
     function cancelarModoBorrar() {
         modoSeleccion = false;
         const btn = document.getElementById('btn-modo-borrar');
@@ -277,30 +320,30 @@
             card.classList.remove('modo-borrar');
         });
     }
- 
- 
- 
+
+
+
     // ── Cargar reseñas ──────────────────────────────────────
     async function loadResenas() {
         const res  = await fetch('/api/resenas');
         const list = await res.json();
         const cont = document.getElementById('resenas-list');
         const summ = document.getElementById('rating-summary');
- 
+
         if (!list.length) {
             cont.innerHTML = '<div class="no-resenas">Todavía no hay reseñas. ¡Sé el primero!</div>';
             summ.style.display = 'none';
             return;
         }
- 
+
         const avg = (list.reduce((a,r) => a + r.estrellas, 0) / list.length).toFixed(1);
         document.getElementById('avg-rating').textContent  = avg;
         document.getElementById('avg-stars').textContent   = '★'.repeat(Math.round(avg)) + '☆'.repeat(5 - Math.round(avg));
         document.getElementById('rating-count').textContent = `${list.length} reseña${list.length !== 1 ? 's' : ''}`;
         summ.style.display = 'flex';
- 
+
         const esBiblio = _usuarioActual?.rol === 'bibliotecario';
- 
+
         cont.innerHTML = list.map(r => {
             const letra = (r.nombre || r.email || '?')[0].toUpperCase();
             const pic   = r.picture
@@ -312,15 +355,15 @@
             const emailMask  = emailParts[0].slice(0, 3) + '***@' + (emailParts[1] || '');
             const esPropia   = _usuarioActual && r.email === _usuarioActual.email;
             const nombreSafe = (r.nombre || '').replace(/'/g, '');
- 
+
             // Botón borrar propia (solo alumno en su reseña)
             const btnPropia = esPropia && !esBiblio
                 ? `<button class="btn-borrar-propia" style="margin-top:0.6rem;padding:5px 14px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:20px;font-size:0.8rem;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Borrar mi reseña</button>`
                 : '';
- 
+
             // Sin onclick inline - se maneja por delegación de eventos
             const onclickBiblio = esBiblio ? `data-resena-id="${r.id}" data-resena-nombre="${nombreSafe}"` : '';
- 
+
             return `<div class="resena-card" id="resena-card-${r.id}" ${onclickBiblio}>
                 <div class="resena-header">
                     ${pic}
@@ -338,11 +381,11 @@
             </div>`;
         }).join('');
     }
- 
+
     // ── Init ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         loadResenas();
- 
+
         // Delegación para botón borrar propia (alumno)
         document.getElementById('resenas-list').addEventListener('click', async function(e) {
             if (!e.target.classList.contains('btn-borrar-propia')) return;
@@ -366,7 +409,7 @@
                 await modalAlert({ titulo: 'Error', mensaje: 'Error de conexión.', tipo: 'error' });
             }
         });
- 
+
         // Delegación para cards bibliotecaria
         document.getElementById('resenas-list').addEventListener('click', async function(e) {
             const card = e.target.closest('.resena-card[data-resena-id]');
@@ -395,7 +438,7 @@
             }
         });
     });
- 
+
     window._onUserLoaded = async (usuario) => {
         if (usuario) {
             _usuarioActual = usuario;
