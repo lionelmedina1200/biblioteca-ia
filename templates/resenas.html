@@ -342,6 +342,58 @@
     // ── Init ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         loadResenas();
+ 
+        // Delegación para botón borrar propia (alumno)
+        document.getElementById('resenas-list').addEventListener('click', async function(e) {
+            if (!e.target.classList.contains('btn-borrar-propia')) return;
+            e.stopPropagation();
+            const ok = await modalConfirm({
+                titulo: 'Borrar reseña',
+                mensaje: '¿Querés eliminar tu reseña? Esta acción no se puede deshacer.',
+                icono: '🗑️', peligro: true, btnOk: 'Borrar', btnNo: 'Cancelar'
+            });
+            if (!ok) return;
+            try {
+                const res = await fetch('/api/resenas/mia', { method: 'DELETE', credentials: 'include' });
+                const data = await res.json();
+                if (res.ok) {
+                    await modalAlert({ titulo: 'Listo', mensaje: 'Tu reseña fue eliminada.', tipo: 'success' });
+                    loadResenas();
+                } else {
+                    await modalAlert({ titulo: 'Error', mensaje: data.error || 'No se pudo eliminar.', tipo: 'error' });
+                }
+            } catch(err) {
+                await modalAlert({ titulo: 'Error', mensaje: 'Error de conexión.', tipo: 'error' });
+            }
+        });
+ 
+        // Delegación para cards bibliotecaria
+        document.getElementById('resenas-list').addEventListener('click', async function(e) {
+            const card = e.target.closest('.resena-card[data-resena-id]');
+            if (!card || !modoSeleccion) return;
+            e.stopPropagation();
+            const id = card.dataset.resenaId;
+            const nombre = card.dataset.resenaNombre || 'este usuario';
+            const ok = await modalConfirm({
+                titulo: 'Eliminar reseña',
+                mensaje: `¿Seguro que querés eliminar la reseña de ${nombre}?`,
+                icono: '🗑️', peligro: true, btnOk: 'Eliminar', btnNo: 'Cancelar'
+            });
+            if (!ok) return;
+            try {
+                const res = await fetch(`/api/resenas/${id}`, { method: 'DELETE', credentials: 'include' });
+                const data = await res.json();
+                if (res.ok) {
+                    await modalAlert({ titulo: 'Eliminada', mensaje: 'La reseña fue eliminada.', tipo: 'success' });
+                    cancelarModoBorrar();
+                    loadResenas();
+                } else {
+                    await modalAlert({ titulo: 'Error', mensaje: data.error || 'No se pudo eliminar.', tipo: 'error' });
+                }
+            } catch(err) {
+                await modalAlert({ titulo: 'Error', mensaje: 'Error de conexión.', tipo: 'error' });
+            }
+        });
     });
  
     window._onUserLoaded = async (usuario) => {
@@ -351,58 +403,6 @@
             await loadResenas();
         }
     };
- 
-    // Delegación para botón borrar propia
-    document.getElementById('resenas-list').addEventListener('click', async function(e) {
-        if (!e.target.classList.contains('btn-borrar-propia')) return;
-        e.stopPropagation();
-        const ok = await modalConfirm({
-            titulo: 'Borrar reseña',
-            mensaje: '¿Querés eliminar tu reseña? Esta acción no se puede deshacer.',
-            icono: '🗑️', peligro: true, btnOk: 'Borrar', btnNo: 'Cancelar'
-        });
-        if (!ok) return;
-        try {
-            const res = await fetch('/api/resenas/mia', { method: 'DELETE', credentials: 'include' });
-            const data = await res.json();
-            if (res.ok) {
-                await modalAlert({ titulo: 'Listo', mensaje: 'Tu reseña fue eliminada.', tipo: 'success' });
-                loadResenas();
-            } else {
-                await modalAlert({ titulo: 'Error', mensaje: data.error || 'No se pudo eliminar.', tipo: 'error' });
-            }
-        } catch(e) {
-            await modalAlert({ titulo: 'Error', mensaje: 'Error de conexión.', tipo: 'error' });
-        }
-    });
- 
-    // Delegación de eventos para cards de bibliotecaria
-    document.getElementById('resenas-list').addEventListener('click', async function(e) {
-        const card = e.target.closest('.resena-card[data-resena-id]');
-        if (!card || !modoSeleccion) return;
-        e.stopPropagation();
-        const id = card.dataset.resenaId;
-        const nombre = card.dataset.resenaNombre || 'este usuario';
-        const ok = await modalConfirm({
-            titulo: 'Eliminar reseña',
-            mensaje: `¿Seguro que querés eliminar la reseña de ${nombre}?`,
-            icono: '🗑️', peligro: true, btnOk: 'Eliminar', btnNo: 'Cancelar'
-        });
-        if (!ok) return;
-        try {
-            const res = await fetch(`/api/resenas/${id}`, { method: 'DELETE', credentials: 'include' });
-            const data = await res.json();
-            if (res.ok) {
-                await modalAlert({ titulo: 'Eliminada', mensaje: 'La reseña fue eliminada.', tipo: 'success' });
-                cancelarModoBorrar();
-                loadResenas();
-            } else {
-                await modalAlert({ titulo: 'Error', mensaje: data.error || 'No se pudo eliminar.', tipo: 'error' });
-            }
-        } catch(e) {
-            await modalAlert({ titulo: 'Error', mensaje: 'Error de conexión.', tipo: 'error' });
-        }
-    });
     </script>
         <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
