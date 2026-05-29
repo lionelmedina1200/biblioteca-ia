@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0f172a">
+    <style>
+        #libro-buscar::placeholder { color: var(--text-muted); }
+        #libro-buscar { margin-bottom: 8px; }
+        #libro-select option { background: var(--bg-card); color: var(--text-heading); }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -27,7 +32,7 @@
         </div></nav>
     </header>
 
-    <!-- MODAL DE POLÍTICAS DE PRÉSTAMOS -->
+    <!-- MODAL DE POLÍTICAS -->
     <div id="modal-politicas" class="modal-politicas">
         <div class="modal-politicas-content">
             <div class="modal-header">
@@ -47,18 +52,17 @@
                 <ul>
                     <li>Pueden hacer uso del préstamo domiciliario los alumnos y todo el personal de la escuela.</li>
                     <li>Para tener este servicio es necesario asociarse a la biblioteca mediante una planilla confeccionada para tal fin.</li>
-                    <li>En el momento de asociarse se pedirá la donación de un libro o un material en distinto soporte, para incorporar a la colección de la biblioteca. La donación no es requisito excluyente para tener este servicio.</li>
-                    <li><strong>Los libros de textos se prestan por 3 días</strong>, la Literatura de género y revistas por <strong>7 días</strong>; en el caso que los lectores necesiten tener el material por más tiempo lo hacen saber a las bibliotecarias.</li>
-                    <li>Los materiales de Referencia como los Diccionarios, Enciclopedias, Atlas, Tomos, Volúmenes de obras completas y libros de único ejemplar, <strong>no pueden prestarse a domicilio</strong>.</li>
+                    <li>En el momento de asociarse se pedirá la donación de un libro o un material en distinto soporte. La donación no es requisito excluyente.</li>
+                    <li><strong>Los libros de textos se prestan por 3 días</strong>, la Literatura de género y revistas por <strong>7 días</strong>.</li>
+                    <li>Los materiales de Referencia como Diccionarios, Enciclopedias, Atlas <strong>no pueden prestarse a domicilio</strong>.</li>
                 </ul>
                 <h3>↩️ DEVOLUCIÓN DE LOS PRÉSTAMOS</h3>
                 <ul>
                     <li>Los materiales tienen que ser devueltos en el tiempo establecido y en perfectas condiciones de uso.</li>
-                    <li>En el caso de pérdida, roturas o deterioro se deberá reponer por otro ejemplar idéntico o por un título sugerido por la biblioteca.</li>
-                    <li>En el Acuerdo Institucional de Convivencia de la escuela se menciona la responsabilidad en cuanto al uso de los materiales de la biblioteca.</li>
+                    <li>En el caso de pérdida, roturas o deterioro se deberá reponer por otro ejemplar idéntico.</li>
                 </ul>
                 <div class="notice-box">
-                    <strong>⚠️ IMPORTANTE:</strong> Cuando los alumnos pidan pase a otra escuela, se debe avisar a la Biblioteca para que se tome conocimiento y se puedan pedir los libros en caso de que tuvieran en préstamo.
+                    <strong>⚠️ IMPORTANTE:</strong> Cuando los alumnos pidan pase a otra escuela, avisar a la Biblioteca para recuperar los materiales en préstamo.
                 </div>
             </div>
             <div class="modal-footer">
@@ -73,16 +77,21 @@
             <h2>📝 Reserva tu libro</h2>
             <p>Completa el formulario para reservar antes de llegar a la biblioteca.</p>
             <form id="checkin-form">
-                <div class="form-group"><label>Nombre completo</label><input type="text" id="nombre" required placeholder="Tu nombre"></div>
-                <div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="tu@email.com"></div>
                 <div class="form-group">
-                    <label>Libro (opcional)</label>
-                    <input type="text" id="libro-buscar" placeholder="Buscá por título o autor..."
-                        style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;transition:border-color 0.2s;box-sizing:border-box;margin-bottom:8px;"
-                        onfocus="this.style.borderColor='var(--azul-claro)'" onblur="this.style.borderColor='var(--border)'">
-                    <select id="libro-select" size="1" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;box-sizing:border-box;">
+                    <label>Nombre completo</label>
+                    <input type="text" id="nombre" required placeholder="Tu nombre">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required placeholder="tu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Libro (opcional) — <span style="font-weight:400;color:var(--text-muted);">escribí para filtrar</span></label>
+                    <input type="text" id="libro-buscar" class="form-input" placeholder="Ej: literatura, matemáticas, física...">
+                    <select id="libro-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;box-sizing:border-box;margin-top:6px;">
                         <option value="">-- Reserva general --</option>
                     </select>
+                    <div id="libro-count" style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;"></div>
                 </div>
                 <button type="submit" class="btn-primary">Confirmar Reserva</button>
             </form>
@@ -119,125 +128,129 @@
     <script src="/static/js/modal.js"></script>
     <script src="/static/js/auth.js"></script>
     <script>
-        async function initPoliticas() {
-            let storageKey = null;
-            try {
-                const res  = await fetch('/api/session', { credentials: 'include' });
-                const data = await res.json();
-                if (data.logged_in && data.usuario) {
-                    storageKey = `politicas_v2_${data.usuario.username}_${data.usuario.id}`;
-                }
-            } catch(e) {}
+    // ── Variables globales ───────────────────────────────────
+    var librosData = [];
 
-            const modal   = document.getElementById('modal-politicas');
-            const content = document.getElementById('checkin-content');
+    // ── Cargar libros INMEDIATAMENTE (no espera login) ───────
+    fetch('/api/libros?per_page=200')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            librosData = data.libros || [];
+            renderSelect(librosData);
+        })
+        .catch(function() { librosData = []; });
 
-            if (storageKey && localStorage.getItem(storageKey) === 'true') {
-                modal.style.display = 'none';
-                content.style.display = 'block';
+    function renderSelect(lista) {
+        var select = document.getElementById('libro-select');
+        if (!select) return;
+        var valorActual = select.value;
+        select.innerHTML = '<option value="">-- Reserva general --</option>';
+        lista.forEach(function(l) {
+            var o = document.createElement('option');
+            o.value = l.id;
+            o.textContent = (l.titulo || '') + (l.autor ? ' - ' + l.autor : '');
+            select.appendChild(o);
+        });
+        if (valorActual) select.value = valorActual;
+        // Contador
+        var count = document.getElementById('libro-count');
+        if (count) {
+            count.textContent = lista.length > 0 ? lista.length + ' libro' + (lista.length !== 1 ? 's' : '') + ' disponibles' : 'Sin resultados';
+        }
+    }
+
+    // ── Filtro en tiempo real ────────────────────────────────
+    document.getElementById('libro-buscar').addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        if (!q) {
+            renderSelect(librosData);
+            return;
+        }
+        var filtrados = librosData.filter(function(l) {
+            return (l.titulo    || '').toLowerCase().includes(q) ||
+                   (l.autor     || '').toLowerCase().includes(q) ||
+                   (l.categoria || '').toLowerCase().includes(q);
+        });
+        renderSelect(filtrados);
+    });
+
+    // ── Políticas ────────────────────────────────────────────
+    async function initPoliticas() {
+        var storageKey = null;
+        try {
+            var res  = await fetch('/api/session', { credentials: 'include' });
+            var data = await res.json();
+            if (data.logged_in && data.usuario) {
+                storageKey = 'politicas_v2_' + data.usuario.username + '_' + data.usuario.id;
             }
+        } catch(e) {}
 
-            document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
-                if (storageKey) localStorage.setItem(storageKey, 'true');
-                modal.style.display = 'none';
-                content.style.display = 'block';
-            });
-        }
-        initPoliticas();
+        var modal   = document.getElementById('modal-politicas');
+        var content = document.getElementById('checkin-content');
 
-        async function preCargarUsuario() {
-            try {
-                const res  = await fetch('/api/session', { credentials: 'include' });
-                const data = await res.json();
-                if (data.logged_in && data.usuario) {
-                    document.getElementById('nombre').value = data.usuario.nombre || '';
-                    document.getElementById('email').value  = data.usuario.email  || '';
-                }
-            } catch(e) {}
+        if (storageKey && localStorage.getItem(storageKey) === 'true') {
+            modal.style.display = 'none';
+            content.style.display = 'block';
         }
 
-        let _librosData = [];
+        document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
+            if (storageKey) localStorage.setItem(storageKey, 'true');
+            modal.style.display = 'none';
+            content.style.display = 'block';
+        });
+    }
+    initPoliticas();
 
-        async function loadLibros() {
-            try {
-                const res  = await fetch('/api/libros?per_page=200');
-                const data = await res.json();
-                _librosData = data.libros || [];
-                renderSelect(_librosData);
-            } catch(e) {
-                _librosData = [];
+    // ── Pre-cargar datos del usuario ─────────────────────────
+    async function preCargarUsuario() {
+        try {
+            var res  = await fetch('/api/session', { credentials: 'include' });
+            var data = await res.json();
+            if (data.logged_in && data.usuario) {
+                document.getElementById('nombre').value = data.usuario.nombre || '';
+                document.getElementById('email').value  = data.usuario.email  || '';
             }
-        }
+        } catch(e) {}
+    }
+    preCargarUsuario();
 
-        function renderSelect(libros) {
-            const select = document.getElementById('libro-select');
-            const valorActual = select.value;
-            select.innerHTML = '<option value="">-- Reserva general --</option>';
-            libros.forEach(l => {
-                const o = document.createElement('option');
-                o.value = l.id;
-                o.textContent = `${l.titulo}${l.autor ? ' - ' + l.autor : ''}`;
-                select.appendChild(o);
+    // ── Formulario de reserva ────────────────────────────────
+    document.getElementById('checkin-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var successEl = document.getElementById('checkin-success');
+        var errorEl   = document.getElementById('checkin-error');
+        successEl.style.display = 'none';
+        errorEl.style.display   = 'none';
+
+        var body = {
+            nombre:   document.getElementById('nombre').value,
+            email:    document.getElementById('email').value,
+            libro_id: document.getElementById('libro-select').value || null
+        };
+
+        try {
+            var res = await fetch('/api/reservas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body)
             });
-            if (valorActual) select.value = valorActual;
-        }
-
-        // El filtro se inicializa después de que loadLibros termina
-        function initBuscador() {
-            const buscar = document.getElementById('libro-buscar');
-            if (!buscar) return;
-            buscar.addEventListener('input', function() {
-                const q = this.value.toLowerCase().trim();
-                if (!q) {
-                    renderSelect(_librosData);
-                    return;
-                }
-                const filtrados = _librosData.filter(l =>
-                    (l.titulo    || '').toLowerCase().includes(q) ||
-                    (l.autor     || '').toLowerCase().includes(q) ||
-                    (l.categoria || '').toLowerCase().includes(q)
-                );
-                renderSelect(filtrados);
-            });
-        }
-
-        document.getElementById('checkin-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const successEl = document.getElementById('checkin-success');
-            const errorEl   = document.getElementById('checkin-error');
-            successEl.style.display = 'none';
-            errorEl.style.display   = 'none';
-
-            const body = {
-                nombre:   document.getElementById('nombre').value,
-                email:    document.getElementById('email').value,
-                libro_id: document.getElementById('libro-select').value || null
-            };
-
-            try {
-                const res = await fetch('/api/reservas', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
-                    body: JSON.stringify(body)
-                });
-                if (res.ok) {
-                    successEl.style.display = 'block';
-                    document.getElementById('checkin-form').reset();
-                    preCargarUsuario();
-                } else {
-                    const data = await res.json();
-                    errorEl.textContent = data.error || 'Error al crear la reserva.';
-                    errorEl.style.display = 'block';
-                }
-            } catch(err) {
-                errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
+            if (res.ok) {
+                successEl.style.display = 'block';
+                document.getElementById('checkin-form').reset();
+                document.getElementById('libro-count').textContent = '';
+                renderSelect(librosData);
+                preCargarUsuario();
+            } else {
+                var data = await res.json();
+                errorEl.textContent = data.error || 'Error al crear la reserva.';
                 errorEl.style.display = 'block';
             }
-        });
-
-        preCargarUsuario();
-        loadLibros().then(() => initBuscador());
+        } catch(err) {
+            errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
+            errorEl.style.display = 'block';
+        }
+    });
     </script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
