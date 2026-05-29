@@ -75,7 +75,15 @@
             <form id="checkin-form">
                 <div class="form-group"><label>Nombre completo</label><input type="text" id="nombre" required placeholder="Tu nombre"></div>
                 <div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="tu@email.com"></div>
-                <div class="form-group"><label>Libro (opcional)</label><select id="libro-select"><option value="">-- Reserva general --</option></select></div>
+                <div class="form-group">
+                    <label>Libro (opcional)</label>
+                    <input type="text" id="libro-buscar" placeholder="Buscá por título o autor..."
+                        style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;transition:border-color 0.2s;box-sizing:border-box;margin-bottom:8px;"
+                        onfocus="this.style.borderColor='var(--azul-claro)'" onblur="this.style.borderColor='var(--border)'">
+                    <select id="libro-select" size="1" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;box-sizing:border-box;">
+                        <option value="">-- Reserva general --</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn-primary">Confirmar Reserva</button>
             </form>
             <div id="checkin-success" class="success-msg" style="display:none;">✅ ¡Reserva creada!</div>
@@ -148,19 +156,48 @@
             } catch(e) {}
         }
 
+        let _librosData = [];
+
         async function loadLibros() {
             try {
-                const res  = await fetch('/api/libros?per_page=100');
+                const res  = await fetch('/api/libros?per_page=200');
                 const data = await res.json();
-                const select = document.getElementById('libro-select');
-                data.libros.forEach(l => {
-                    const o = document.createElement('option');
-                    o.value = l.id;
-                    o.textContent = `${l.titulo} - ${l.autor}`;
-                    select.appendChild(o);
-                });
+                _librosData = data.libros || [];
+                renderSelect(_librosData);
             } catch(e) {}
         }
+
+        function renderSelect(libros) {
+            const select = document.getElementById('libro-select');
+            const valorActual = select.value;
+            select.innerHTML = '<option value="">-- Reserva general --</option>';
+            libros.forEach(l => {
+                const o = document.createElement('option');
+                o.value = l.id;
+                o.textContent = `${l.titulo}${l.autor ? ' - ' + l.autor : ''}`;
+                select.appendChild(o);
+            });
+            if (valorActual) select.value = valorActual;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const buscar = document.getElementById('libro-buscar');
+            if (buscar) {
+                buscar.addEventListener('input', function() {
+                    const q = this.value.toLowerCase().trim();
+                    if (!q) {
+                        renderSelect(_librosData);
+                        return;
+                    }
+                    const filtrados = _librosData.filter(l =>
+                        (l.titulo || '').toLowerCase().includes(q) ||
+                        (l.autor  || '').toLowerCase().includes(q) ||
+                        (l.categoria || '').toLowerCase().includes(q)
+                    );
+                    renderSelect(filtrados);
+                });
+            }
+        });
 
         document.getElementById('checkin-form').addEventListener('submit', async (e) => {
             e.preventDefault();
