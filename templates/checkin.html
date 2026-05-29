@@ -86,7 +86,20 @@
             <form id="checkin-form">
                 <div class="form-group"><label>Nombre completo</label><input type="text" id="nombre" required placeholder="Tu nombre"></div>
                 <div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="tu@email.com"></div>
-                <div class="form-group"><label>Libro (opcional)</label><select id="libro-select"><option value="">-- Reserva general --</option></select></div>
+                <div class="form-group">
+                    <label>Libro (opcional)</label>
+                    <div style="position:relative;">
+                        <input type="text" id="libro-search" placeholder="Buscá por título o autor..." autocomplete="off"
+                            style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;transition:border-color 0.2s;box-sizing:border-box;"
+                            onfocus="this.style.borderColor='var(--azul-claro)'" onblur="setTimeout(()=>cerrarDropdown(),200)">
+                        <div id="libro-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);max-height:220px;overflow-y:auto;z-index:1000;box-shadow:var(--sombra);margin-top:4px;"></div>
+                        <input type="hidden" id="libro-select" value="">
+                    </div>
+                    <div id="libro-seleccionado" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;font-size:0.88rem;color:var(--azul-claro);display:flex;align-items:center;justify-content:space-between;">
+                        <span id="libro-seleccionado-texto"></span>
+                        <button type="button" onclick="limpiarLibro()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:0 4px;">✕</button>
+                    </div>
+                </div>
                 <button type="submit" class="btn-primary">Confirmar Reserva</button>
             </form>
             <div id="checkin-success" class="success-msg" style="display:none;">✅ ¡Reserva creada!</div>
