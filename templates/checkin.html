@@ -89,7 +89,7 @@
                 <div class="form-group">
                     <label>Libro (opcional)</label>
                     <div style="position:relative;">
-                        <input type="text" id="libro-search" placeholder="Buscá por título, autor o categoría..." autocomplete="off"
+                        <input type="text" id="libro-search" placeholder="Tocá para ver libros o escribí para buscar..." autocomplete="off"
                             style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:1rem;background:var(--bg-input);color:var(--text-heading);outline:none;transition:border-color 0.2s;box-sizing:border-box;">
                         <div id="libro-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);max-height:240px;overflow-y:auto;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.4);"></div>
                     </div>
@@ -229,8 +229,95 @@
         });
 
         preCargarUsuario();
-        loadLibros();
+        loadLibros().then(function() {
+            console.log('Libros disponibles:', _todosLibros.length);
+        });
     </script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
+</body>
+</html        // ── Buscador de libros ──────────────────────────────────
+        let _todosLibros = [];
+
+        async function loadLibros() {
+            try {
+                const res = await fetch('/api/libros?per_page=200');
+                const data = await res.json();
+                _todosLibros = data.libros || [];
+            } catch(e) {
+                _todosLibros = [];
+            }
+        }
+
+        function seleccionarLibro(id, titulo, autor) {
+            document.getElementById('libro-select').value = id;
+            document.getElementById('libro-search').value = '';
+            document.getElementById('libro-seleccionado-texto').textContent = titulo + (autor ? ' — ' + autor : '');
+            document.getElementById('libro-seleccionado').style.display = 'flex';
+            document.getElementById('libro-dropdown').style.display = 'none';
+        }
+
+        function limpiarLibro() {
+            document.getElementById('libro-select').value = '';
+            document.getElementById('libro-search').value = '';
+            document.getElementById('libro-seleccionado').style.display = 'none';
+        }
+
+        window.addEventListener('load', async function() {
+            await loadLibros();
+            await preCargarUsuario();
+
+            const input    = document.getElementById('libro-search');
+            const dropdown = document.getElementById('libro-dropdown');
+            if (!input || !dropdown) return;
+
+            input.addEventListener('input', function() {
+                const q = this.value.toLowerCase().trim();
+                if (!q) { dropdown.style.display = 'none'; return; }
+
+                const res = _todosLibros.filter(function(l) {
+                    return (l.titulo||'').toLowerCase().includes(q) ||
+                           (l.autor||'').toLowerCase().includes(q) ||
+                           (l.categoria||'').toLowerCase().includes(q);
+                }).slice(0, 15);
+
+                if (!res.length) {
+                    dropdown.innerHTML = '<div style="padding:12px 16px;color:var(--text-muted);font-size:0.88rem;">Sin resultados</div>';
+                } else {
+                    dropdown.innerHTML = res.map(function(l) {
+                        var cat = l.categoria ? ' · ' + l.categoria : '';
+                        return '<div class="libro-opt" data-id="' + l.id + '" data-titulo="' + (l.titulo||'').replace(/"/g,'') + '" data-autor="' + (l.autor||'').replace(/"/g,'') + '"' +
+                               ' style="padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;">' +
+                               '<div style="font-weight:600;color:var(--text-heading);font-size:0.92rem;">' + (l.titulo||'') + '</div>' +
+                               '<div style="font-size:0.78rem;color:var(--text-muted);">' + (l.autor||'') + cat + '</div>' +
+                               '</div>';
+                    }).join('');
+                }
+                dropdown.style.display = 'block';
+            });
+
+            dropdown.addEventListener('click', function(e) {
+                var opt = e.target.closest('.libro-opt');
+                if (!opt) return;
+                seleccionarLibro(opt.dataset.id, opt.dataset.titulo, opt.dataset.autor);
+            });
+
+            dropdown.addEventListener('mouseover', function(e) {
+                var opt = e.target.closest('.libro-opt');
+                if (opt) opt.style.background = 'var(--azul-marino)';
+            });
+            dropdown.addEventListener('mouseout', function(e) {
+                var opt = e.target.closest('.libro-opt');
+                if (opt) opt.style.background = '';
+            });
+
+            document.addEventListener('click', function(e) {
+                if (input && !input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+
+        </script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>
