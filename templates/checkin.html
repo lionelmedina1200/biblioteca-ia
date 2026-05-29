@@ -3,20 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check-in - Biblioteca IA</title>
+    <title>Check-in · Biblioteca IA</title>
+    <meta name="description" content="Registrá tu asistencia a la biblioteca y solicitá libros en préstamo.">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
 </head>
 <body>
     <header class="header">
-        <div class="logo"><span class="logo-icon">📚</span><h1>Check-in</h1></div>
-        <nav class="header-nav">
+        <div class="header-top">
+            <div class="logo"><span class="logo-icon">📚</span><h1>Check-in</h1></div>
+            <div id="user-menu"></div>
+        </div>
+        <nav class="header-nav"><div class="header-nav-inner">
             <a href="/" class="nav-link">Inicio</a>
             <a href="/checkin" class="nav-link active">Check-in</a>
-            <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
+            <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
+            <a href="/catalogo" class="nav-link" id="nav-catalogo" style="display:none;">Catálogo</a>
+            <a href="/mis-prestamos" class="nav-link" id="nav-prestamos" style="display:none;">Mis Préstamos</a>
+            <a href="/dashboard" class="nav-link dashboard-link" id="nav-dashboard" style="display:none;">Dashboard</a>
             <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
             <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
-        </nav>
-        <div id="user-menu"></div>
+        </div></nav>
     </header>
 
     <!-- MODAL DE POLÍTICAS DE PRÉSTAMOS -->
@@ -26,7 +34,6 @@
                 <h2>📋 Reglamento de la Biblioteca</h2>
                 <p class="modal-subtitle">Políticas de Préstamos y Normas de Uso</p>
             </div>
-            
             <div class="modal-body-scroll">
                 <h3>📖 PRÉSTAMOS AL AULA Y SALA DE LECTURA</h3>
                 <ul>
@@ -36,7 +43,6 @@
                     <li>Comer fuera de la biblioteca y cuidar de la limpieza del lugar.</li>
                     <li>Los egresados de la escuela pueden consultar los materiales de la biblioteca y usar la sala de lectura con autorización de la Dirección.</li>
                 </ul>
-
                 <h3>🏠 PRÉSTAMO DOMICILIARIO</h3>
                 <ul>
                     <li>Pueden hacer uso del préstamo domiciliario los alumnos y todo el personal de la escuela.</li>
@@ -45,26 +51,23 @@
                     <li><strong>Los libros de textos se prestan por 3 días</strong>, la Literatura de género y revistas por <strong>7 días</strong>; en el caso que los lectores necesiten tener el material por más tiempo lo hacen saber a las bibliotecarias.</li>
                     <li>Los materiales de Referencia como los Diccionarios, Enciclopedias, Atlas, Tomos, Volúmenes de obras completas y libros de único ejemplar, <strong>no pueden prestarse a domicilio</strong>.</li>
                 </ul>
-
                 <h3>↩️ DEVOLUCIÓN DE LOS PRÉSTAMOS</h3>
                 <ul>
                     <li>Los materiales tienen que ser devueltos en el tiempo establecido y en perfectas condiciones de uso.</li>
                     <li>En el caso de pérdida, roturas o deterioro se deberá reponer por otro ejemplar idéntico o por un título sugerido por la biblioteca.</li>
                     <li>En el Acuerdo Institucional de Convivencia de la escuela se menciona la responsabilidad en cuanto al uso de los materiales de la biblioteca.</li>
                 </ul>
-
                 <div class="notice-box">
                     <strong>⚠️ IMPORTANTE:</strong> Cuando los alumnos pidan pase a otra escuela, se debe avisar a la Biblioteca para que se tome conocimiento y se puedan pedir los libros en caso de que tuvieran en préstamo.
                 </div>
             </div>
-
             <div class="modal-footer">
                 <button id="btn-aceptar-politicas" class="btn-primary">✅ He leído y acepto las políticas de préstamos</button>
             </div>
         </div>
     </div>
 
-    <!-- CONTENIDO DEL CHECK-IN (oculto hasta aceptar) -->
+    <!-- CONTENIDO DEL CHECK-IN -->
     <main class="checkin-main" id="checkin-content" style="display:none;">
         <div class="checkin-card">
             <h2>📝 Reserva tu libro</h2>
@@ -76,59 +79,127 @@
                 <button type="submit" class="btn-primary">Confirmar Reserva</button>
             </form>
             <div id="checkin-success" class="success-msg" style="display:none;">✅ ¡Reserva creada!</div>
+            <div id="checkin-error" class="error-msg" style="display:none;"></div>
         </div>
     </main>
 
+    <!-- MODAL LOGIN -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content login-content">
+            <span class="close-modal" id="close-login">&times;</span>
+            <h2>🔐 Iniciar Sesión</h2>
+            <form id="login-form">
+                <div class="form-group"><label>Usuario</label><input type="text" id="login-username" required placeholder="Tu usuario"></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" required placeholder="Tu contraseña"></div>
+                <button type="submit" class="btn-primary">Ingresar</button>
+            </form>
+            <div id="login-error" class="error-msg" style="display:none;"></div>
+            <div class="google-divider">o ingresá con</div>
+            <a href="/auth/google" class="btn-google">
+                <svg width="22" height="22" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Continuar con Google
+            </a>
+            <p class="google-note">Solo disponible para alumnos</p>
+        </div>
+    </div>
+
+    <script src="/static/js/modal.js"></script>
     <script src="/static/js/auth.js"></script>
     <script>
-        // Verificar si ya aceptó las políticas en esta sesión
-        if (sessionStorage.getItem('politicas_aceptadas') === 'true') {
-            document.getElementById('modal-politicas').style.display = 'none';
-            document.getElementById('checkin-content').style.display = 'block';
-        }
+        async function initPoliticas() {
+            let storageKey = null;
+            try {
+                const res  = await fetch('/api/session', { credentials: 'include' });
+                const data = await res.json();
+                if (data.logged_in && data.usuario) {
+                    storageKey = `politicas_v2_${data.usuario.username}_${data.usuario.id}`;
+                }
+            } catch(e) {}
 
-        // Botón aceptar políticas
-        document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
-            sessionStorage.setItem('politicas_aceptadas', 'true');
-            document.getElementById('modal-politicas').style.display = 'none';
-            document.getElementById('checkin-content').style.display = 'block';
-        });
+            const modal   = document.getElementById('modal-politicas');
+            const content = document.getElementById('checkin-content');
 
-        // Cargar libros para el select
-        async function loadLibros() {
-            const res = await fetch('/api/libros?per_page=100');
-            const data = await res.json();
-            const select = document.getElementById('libro-select');
-            data.libros.forEach(l => { 
-                const o = document.createElement('option'); 
-                o.value = l.id; 
-                o.textContent = `${l.titulo} - ${l.autor}`; 
-                select.appendChild(o); 
+            if (storageKey && localStorage.getItem(storageKey) === 'true') {
+                modal.style.display = 'none';
+                content.style.display = 'block';
+            }
+
+            document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
+                if (storageKey) localStorage.setItem(storageKey, 'true');
+                modal.style.display = 'none';
+                content.style.display = 'block';
             });
         }
+        initPoliticas();
 
-        // Formulario de reserva
+        async function preCargarUsuario() {
+            try {
+                const res  = await fetch('/api/session', { credentials: 'include' });
+                const data = await res.json();
+                if (data.logged_in && data.usuario) {
+                    document.getElementById('nombre').value = data.usuario.nombre || '';
+                    document.getElementById('email').value  = data.usuario.email  || '';
+                }
+            } catch(e) {}
+        }
+
+        async function loadLibros() {
+            try {
+                const res  = await fetch('/api/libros?per_page=100');
+                const data = await res.json();
+                const select = document.getElementById('libro-select');
+                data.libros.forEach(l => {
+                    const o = document.createElement('option');
+                    o.value = l.id;
+                    o.textContent = `${l.titulo} - ${l.autor}`;
+                    select.appendChild(o);
+                });
+            } catch(e) {}
+        }
+
         document.getElementById('checkin-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const body = { 
-                nombre: document.getElementById('nombre').value, 
-                email: document.getElementById('email').value, 
-                libro_id: document.getElementById('libro-select').value || null 
+            const successEl = document.getElementById('checkin-success');
+            const errorEl   = document.getElementById('checkin-error');
+            successEl.style.display = 'none';
+            errorEl.style.display   = 'none';
+
+            const body = {
+                nombre:   document.getElementById('nombre').value,
+                email:    document.getElementById('email').value,
+                libro_id: document.getElementById('libro-select').value || null
             };
-            const res = await fetch('/api/reservas', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify(body) 
-            });
-            if (res.ok) { 
-                document.getElementById('checkin-success').style.display = 'block'; 
-                document.getElementById('checkin-form').reset(); 
-            } else {
-                alert("Debes iniciar sesión para reservar.");
+
+            try {
+                const res = await fetch('/api/reservas', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    successEl.style.display = 'block';
+                    document.getElementById('checkin-form').reset();
+                    preCargarUsuario();
+                } else {
+                    const data = await res.json();
+                    errorEl.textContent = data.error || 'Error al crear la reserva.';
+                    errorEl.style.display = 'block';
+                }
+            } catch(err) {
+                errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
+                errorEl.style.display = 'block';
             }
         });
 
+        preCargarUsuario();
         loadLibros();
     </script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>
