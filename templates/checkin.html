@@ -164,7 +164,9 @@
                 const data = await res.json();
                 _librosData = data.libros || [];
                 renderSelect(_librosData);
-            } catch(e) {}
+            } catch(e) {
+                _librosData = [];
+            }
         }
 
         function renderSelect(libros) {
@@ -180,24 +182,24 @@
             if (valorActual) select.value = valorActual;
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // El filtro se inicializa después de que loadLibros termina
+        function initBuscador() {
             const buscar = document.getElementById('libro-buscar');
-            if (buscar) {
-                buscar.addEventListener('input', function() {
-                    const q = this.value.toLowerCase().trim();
-                    if (!q) {
-                        renderSelect(_librosData);
-                        return;
-                    }
-                    const filtrados = _librosData.filter(l =>
-                        (l.titulo || '').toLowerCase().includes(q) ||
-                        (l.autor  || '').toLowerCase().includes(q) ||
-                        (l.categoria || '').toLowerCase().includes(q)
-                    );
-                    renderSelect(filtrados);
-                });
-            }
-        });
+            if (!buscar) return;
+            buscar.addEventListener('input', function() {
+                const q = this.value.toLowerCase().trim();
+                if (!q) {
+                    renderSelect(_librosData);
+                    return;
+                }
+                const filtrados = _librosData.filter(l =>
+                    (l.titulo    || '').toLowerCase().includes(q) ||
+                    (l.autor     || '').toLowerCase().includes(q) ||
+                    (l.categoria || '').toLowerCase().includes(q)
+                );
+                renderSelect(filtrados);
+            });
+        }
 
         document.getElementById('checkin-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -235,7 +237,7 @@
         });
 
         preCargarUsuario();
-        loadLibros();
+        loadLibros().then(() => initBuscador());
     </script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
