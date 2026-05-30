@@ -377,26 +377,26 @@ def marcar_devuelto(reserva_id):
 def agregar_libro():
     try:
         data = request.json or {}
-        titulo = data.get("titulo", "").strip()
-        autor = data.get("autor", "").strip()
+        titulo    = data.get("titulo", "").strip()
+        autor     = data.get("autor", "").strip()
         editorial = data.get("editorial", "").strip()
-        capitulo = data.get("capitulo", "").strip()
-        stock = data.get("stock", 10)
-        if not titulo or not autor or not editorial:
-            return jsonify({"error": "Título, autor y editorial son obligatorios"}), 400
+        capitulo  = data.get("capitulo", "").strip()
+        categoria = data.get("categoria", "").strip()
+        stock     = data.get("stock", 1)
+        if not titulo or not autor:
+            return jsonify({"error": "Título y autor son obligatorios"}), 400
+        if not categoria:
+            return jsonify({"error": "La categoría es obligatoria"}), 400
         try:
             stock = int(stock)
-            if stock < 0:
-                stock = 10
+            if stock < 0: stock = 1
         except (ValueError, TypeError):
-            stock = 10
-        conn = get_db()
-        c = conn.cursor()
+            stock = 1
+        conn = get_db(); c = conn.cursor()
         c.execute("""
             INSERT INTO libros (titulo, autor, editorial, capitulo, categoria, disponible)
             VALUES (%s, %s, %s, %s, %s, %s)
-        """, (titulo, autor, editorial, capitulo, "General", stock))
-        # Log
+        """, (titulo, autor, editorial, capitulo, categoria, stock))
         nuevo_id = None
         try:
             c.execute("SELECT id FROM libros WHERE titulo = %s AND autor = %s ORDER BY id DESC LIMIT 1", (titulo, autor))
@@ -406,14 +406,47 @@ def agregar_libro():
         usuario = session.get("usuario", {})
         registrar_log(c, usuario.get("id"), usuario.get("nombre", "Bibliotecaria"),
                       "Agregar libro", "libros", nuevo_id,
-                      f"Libro: {titulo} | Stock inicial: {stock}")
-        conn.commit()
-        c.close()
-        conn.close()
-        return jsonify({"mensaje": f"Libro '{{titulo}}' agregado correctamente"}), 201
-    except Exception as e:
+                      f"Libro: {titulo} | Categoría: {categoria} | Stock: {stock}")
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"mensaje": f"Libro '{titulo}' agregado correctamente"}), 201
+    except Exception:
         traceback.print_exc()
         return jsonify({"error": "Error al agregar el libro"}), 500
+
+@app.route("/api/libros/<int:libro_id>", methods=["PUT"])
+@bibliotecario_required
+def editar_libro(libro_id):
+    try:
+        data = request.json or {}
+        titulo    = data.get("titulo", "").strip()
+        autor     = data.get("autor", "").strip()
+        editorial = data.get("editorial", "").strip()
+        capitulo  = data.get("capitulo", "").strip()
+        categoria = data.get("categoria", "").strip()
+        stock     = data.get("stock", 1)
+        if not titulo or not autor:
+            return jsonify({"error": "Título y autor son obligatorios"}), 400
+        if not categoria:
+            return jsonify({"error": "La categoría es obligatoria"}), 400
+        try:
+            stock = int(stock)
+            if stock < 0: stock = 0
+        except (ValueError, TypeError):
+            stock = 1
+        conn = get_db(); c = conn.cursor()
+        c.execute("""
+            UPDATE libros SET titulo=%s, autor=%s, editorial=%s, capitulo=%s, categoria=%s, disponible=%s
+            WHERE id=%s
+        """, (titulo, autor, editorial, capitulo, categoria, stock, libro_id))
+        usuario = session.get("usuario", {})
+        registrar_log(c, usuario.get("id"), usuario.get("nombre", "Bibliotecaria"),
+                      "Editar libro", "libros", libro_id,
+                      f"Libro ID {libro_id}: {titulo}")
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"mensaje": f"Libro '{titulo}' actualizado correctamente"}), 200
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Error al editar el libro"}), 500
 
 # ═══════════════════════════════════════════════════════════
 # RESEÑAS
@@ -566,13 +599,19 @@ def eliminar_chat(sesion_id):
 def borrar_resena_propia():
     try:
         u = session["usuario"]
+        uid = u.get("id")
+        email = u.get("email", "")
         conn = get_db(); c = conn.cursor()
-        c.execute("DELETE FROM resenas WHERE usuario_id=%s", (u["id"],))
-        conn.commit(); c.close(); conn.close()
-        return jsonify({"ok": True})
+        # Borrar por usuario_id O por email (por si acaso)
+        c.execute("DELETE FROM resenas WHERE usuario_id=%s OR email=%s", (uid, email))
+        conn.commit()
+        deleted = c.rowcount
+        c.close(); conn.close()
+        print(f"[BORRAR RESENA] uid={uid} email={email} deleted={deleted}")
+        return jsonify({"ok": True, "deleted": deleted})
     except Exception:
         traceback.print_exc()
-        return jsonify({"ok": False}), 500
+        return jsonify({"ok": False, "error": "Error interno"}), 500
 
 @app.route("/api/resenas/<int:resena_id>", methods=["DELETE"])
 @login_required
@@ -583,11 +622,14 @@ def borrar_resena_por_id(resena_id):
             return jsonify({"error": "Sin permisos"}), 403
         conn = get_db(); c = conn.cursor()
         c.execute("DELETE FROM resenas WHERE id=%s", (resena_id,))
-        conn.commit(); c.close(); conn.close()
-        return jsonify({"ok": True})
+        conn.commit()
+        deleted = c.rowcount
+        c.close(); conn.close()
+        print(f"[BORRAR RESENA ADMIN] id={resena_id} deleted={deleted}")
+        return jsonify({"ok": True, "deleted": deleted})
     except Exception:
         traceback.print_exc()
-        return jsonify({"ok": False}), 500
+        return jsonify({"ok": False, "error": "Error interno"}), 500
 
 # ═══════════════════════════════════════════════════════════
 # AVATAR
