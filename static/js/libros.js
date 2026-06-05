@@ -39,7 +39,7 @@ async function loadLibros(page = 1) {
                 <td>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                         <button class="btn-editar" onclick="abrirModalEditar(${l.id})">Editar</button>
-                        <button class="btn-eliminar-libro" data-titulo="${(l.titulo||'').replace(/"/g,'')}" onclick="eliminarLibro(${l.id}, this)">Eliminar</button>
+                        <button class="btn-eliminar-libro" onclick="eliminarLibro(${l.id}, '${(l.titulo||'').replace(/'/g, '').replace(/"/g, '')}')">Eliminar</button>
                     </div>
                 </td>
             </tr>
@@ -298,8 +298,8 @@ async function guardarLibro() {
 }
 
 // ── Eliminar ──────────────────────────────────────────────
-async function eliminarLibro(id, btn) {
-    const titulo = btn.getAttribute('data-titulo') || 'este libro';
+async function eliminarLibro(id, titulo) {
+    titulo = titulo || 'este libro';
     const ok = await modalConfirm({
         titulo: 'Eliminar libro',
         mensaje: `Vas a eliminar "${titulo}". Esta acción no se puede deshacer.`,
