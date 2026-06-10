@@ -14,6 +14,29 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script>
+    // toggle contraseña - definido globalmente para que esté disponible siempre
+    function togglePass() {
+        var inp    = document.getElementById('login-password');
+        var eyeOn  = document.getElementById('icon-eye');
+        var eyeOff = document.getElementById('icon-eye-off');
+        if (!inp) return;
+        if (inp.type === 'password') {
+            inp.type = 'text';
+            if (eyeOn)  eyeOn.style.display  = 'none';
+            if (eyeOff) eyeOff.style.display = 'block';
+        } else {
+            inp.type = 'password';
+            if (eyeOn)  eyeOn.style.display  = 'block';
+            if (eyeOff) eyeOff.style.display = 'none';
+        }
+    }
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('#btn-toggle-pass')) {
+            togglePass();
+        }
+    });
+    </script>
 </head>
 <body>
     <div id="welcome-modal" class="welcome-modal">
@@ -84,7 +107,7 @@
                     <label>Contraseña</label>
                     <div style="position:relative;">
                         <input type="password" id="login-password" required placeholder="Tu contraseña" style="padding-right:48px;">
-                        <button type="button" onclick="togglePass()" id="btn-toggle-pass"
+                        <button type="button" id="btn-toggle-pass"
                             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--azul-claro);padding:0;line-height:1;display:flex;align-items:center;"
                             title="Mostrar/ocultar contraseña">
                             <svg id="icon-eye" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
