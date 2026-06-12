@@ -170,9 +170,9 @@ function addCap(parentId, valor) {
         : document.getElementById('caps-lista');
     if (!lista) return;
     if (!parentId) document.getElementById('caps-hint').style.display = 'none';
-    const uniqueId = Date.now() + Math.random().toString(36).slice(2,5);
+    const uniqueId = Date.now();
     const id = parentId ? 'bc-' + parentId + '-' + uniqueId : 'cap-' + uniqueId;
-    const num = lista.children.length + 1;
+    const num = lista.children.length + 1; // numero visible correcto
     const row = document.createElement('div');
     row.className = 'cap-row';
     row.id = 'row-' + id;
@@ -209,17 +209,16 @@ function capKeydown(e, parentId) {
 
 // ── Bloques ───────────────────────────────────────────────
 function addBloque(nombre, caps) {
-    // usar cantidad real de bloques actuales + 1
+    const bid = Date.now(); // ID interno unico
     const lista_actual = document.getElementById('bloques-lista');
-    bloquesCount = lista_actual ? lista_actual.querySelectorAll('.bloque-wrap').length + 1 : bloquesCount + 1;
-    const bid = Date.now(); // ID unico para evitar colisiones
+    const numVisible = lista_actual ? lista_actual.querySelectorAll('.bloque-wrap').length + 1 : 1;
     const lista = document.getElementById('bloques-lista');
     const wrap = document.createElement('div');
     wrap.className = 'bloque-wrap';
     wrap.id = 'bloque-' + bid;
     wrap.innerHTML = `
         <div class="bloque-header">
-            <span style="color:var(--azul-claro);font-weight:700;font-size:0.88rem;">Bloque ${bid}</span>
+            <span class="bloque-num-label" style="color:var(--azul-claro);font-weight:700;font-size:0.88rem;">Bloque ${numVisible}</span>
             <input type="text" id="bloque-nombre-${bid}" class="bloque-titulo-input" value="${nombre||''}" placeholder="Nombre del bloque (ej: Unidad 1)">
             <button type="button" class="btn-del-bloque" onclick="delBloque(${bid})">✕</button>
         </div>
@@ -243,9 +242,8 @@ function renumerarBloques() {
     const bloques = lista.querySelectorAll('.bloque-wrap');
     bloquesCount = bloques.length;
     bloques.forEach((bw, i) => {
-        const num = i + 1;
-        const span = bw.querySelector('span[style*="azul-claro"]');
-        if (span) span.textContent = 'Bloque ' + num;
+        const span = bw.querySelector('.bloque-num-label');
+        if (span) span.textContent = 'Bloque ' + (i + 1);
     });
 }
 
