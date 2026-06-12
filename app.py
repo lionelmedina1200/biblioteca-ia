@@ -741,9 +741,32 @@ def actualizar_stock(libro_id):
     conn.close()
     return jsonify({"mensaje": "Stock actualizado correctamente", "cantidad": cantidad})
 
-@app.route("/api/usuarios")
+@app.route("/api/usuarios/<int:usuario_id>", methods=["DELETE"])
 @bibliotecario_required
-def listar_usuarios():
+def eliminar_usuario(usuario_id):
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        # No permitir eliminar bibliotecarios ni admins
+        c.execute("SELECT rol, nombre FROM usuarios WHERE id=%s", (usuario_id,))
+        target = fetchone_as_dict(c)
+        if not target:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+        if target["rol"] in ("bibliotecario", "admin"):
+            return jsonify({"error": "No se puede eliminar este tipo de usuario"}), 403
+        # Eliminar sus datos relacionados
+        c.execute("DELETE FROM chat_historial WHERE usuario_id=%s", (usuario_id,))
+        c.execute("DELETE FROM resenas WHERE usuario_id=%s", (usuario_id,))
+        c.execute("DELETE FROM reservas WHERE usuario_id=%s", (usuario_id,))
+        c.execute("DELETE FROM usuarios WHERE id=%s", (usuario_id,))
+        registrar_log(c, u.get("id"), u.get("nombre","Bibliotecaria"),
+                      "Eliminar usuario", "usuarios", usuario_id,
+                      f"Usuario eliminado: {target['nombre']}")
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True, "mensaje": f"Usuario '{target['nombre']}' eliminado"})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Error al eliminar el usuario"}), 500
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT id, username, nombre, email, rol, activo, fecha_creacion FROM usuarios ORDER BY id DESC")
