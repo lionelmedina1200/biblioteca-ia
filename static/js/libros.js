@@ -165,16 +165,18 @@ function setTipo(tipo) {
 
 // ── Solo capítulos ────────────────────────────────────────
 function addCap(parentId, valor) {
-    capsCount++;
     const lista = parentId
         ? document.getElementById('caps-bloque-' + parentId)
         : document.getElementById('caps-lista');
+    if (!lista) return;
     if (!parentId) document.getElementById('caps-hint').style.display = 'none';
-    const id = parentId ? 'bc-' + parentId + '-' + capsCount : 'cap-' + capsCount;
+    const uniqueId = Date.now() + Math.random().toString(36).slice(2,5);
+    const id = parentId ? 'bc-' + parentId + '-' + uniqueId : 'cap-' + uniqueId;
+    const num = lista.children.length + 1;
     const row = document.createElement('div');
     row.className = 'cap-row';
     row.id = 'row-' + id;
-    row.innerHTML = `<span class="cap-num">${lista.children.length + 1}.</span>
+    row.innerHTML = `<span class="cap-num">${num}.</span>
         <input type="text" id="${id}" class="cap-input" value="${valor||''}" placeholder="Nombre del capítulo" onkeydown="capKeydown(event, '${parentId||''}')">
         <button type="button" class="btn-del-cap" onclick="delCap('row-${id}', '${parentId||''}')">✕</button>`;
     lista.appendChild(row);
@@ -188,11 +190,17 @@ function delCap(rowId, parentId) {
         if (lista && lista.children.length === 0) {
             document.getElementById('caps-hint').style.display = 'block';
         }
-        // renumerar
-        document.querySelectorAll('#caps-lista .cap-row').forEach((r, i) => {
-            r.querySelector('.cap-num').textContent = (i+1) + '.';
-        });
+        renumerarCaps(null);
+    } else {
+        renumerarCaps(parentId);
     }
+}
+
+function renumerarCaps(parentId) {
+    const selector = parentId ? '#caps-bloque-' + parentId + ' .cap-row' : '#caps-lista .cap-row';
+    document.querySelectorAll(selector).forEach((r, i) => {
+        r.querySelector('.cap-num').textContent = (i+1) + '.';
+    });
 }
 
 function capKeydown(e, parentId) {
