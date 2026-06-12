@@ -67,13 +67,25 @@ function renderPagination(totalPages, current) {
 }
 
 // ── Modal ─────────────────────────────────────────────────
-function abrirModalNuevo() {
+async function abrirModalNuevo() {
     modoEdicion = false;
     document.getElementById('modal-libro-titulo').textContent = 'Agregar Libro';
     document.getElementById('edit-id').value = '';
     limpiarModal();
+    await cargarCategorias();
     document.getElementById('modal-libro').classList.add('open');
     document.getElementById('nuevo-titulo').focus();
+}
+
+async function cargarCategorias() {
+    try {
+        const res  = await fetch('/api/libros?per_page=500');
+        const data = await res.json();
+        const cats = [...new Set((data.libros || []).map(l => l.categoria).filter(Boolean))].sort();
+        const dl   = document.getElementById('categorias-list');
+        if (!dl) return;
+        dl.innerHTML = cats.map(c => `<option value="${c}">`).join('');
+    } catch(e) {}
 }
 
 async function abrirModalEditar(id) {
@@ -148,6 +160,7 @@ function setTipo(tipo) {
     document.getElementById('panel-bloques').style.display   = tipo === 'bloques'   ? 'block' : 'none';
     if (tipo !== 'capitulos') { document.getElementById('caps-lista').innerHTML = ''; capsCount = 0; document.getElementById('caps-hint').style.display = 'block'; }
     if (tipo !== 'bloques')   { document.getElementById('bloques-lista').innerHTML = ''; bloquesCount = 0; }
+    if (tipo === 'bloques')   { renumerarBloques(); }
 }
 
 // ── Solo capítulos ────────────────────────────────────────
@@ -188,8 +201,10 @@ function capKeydown(e, parentId) {
 
 // ── Bloques ───────────────────────────────────────────────
 function addBloque(nombre, caps) {
-    bloquesCount++;
-    const bid = bloquesCount;
+    // usar cantidad real de bloques actuales + 1
+    const lista_actual = document.getElementById('bloques-lista');
+    bloquesCount = lista_actual ? lista_actual.querySelectorAll('.bloque-wrap').length + 1 : bloquesCount + 1;
+    const bid = Date.now(); // ID unico para evitar colisiones
     const lista = document.getElementById('bloques-lista');
     const wrap = document.createElement('div');
     wrap.className = 'bloque-wrap';
@@ -211,6 +226,19 @@ function addBloque(nombre, caps) {
 
 function delBloque(bid) {
     document.getElementById('bloque-' + bid)?.remove();
+    renumerarBloques();
+}
+
+function renumerarBloques() {
+    const lista = document.getElementById('bloques-lista');
+    if (!lista) return;
+    const bloques = lista.querySelectorAll('.bloque-wrap');
+    bloquesCount = bloques.length;
+    bloques.forEach((bw, i) => {
+        const num = i + 1;
+        const span = bw.querySelector('span[style*="azul-claro"]');
+        if (span) span.textContent = 'Bloque ' + num;
+    });
 }
 
 // ── Recolectar estructura ─────────────────────────────────
