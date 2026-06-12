@@ -30,6 +30,7 @@
         <nav class="header-nav"><div class="header-nav-inner">
             <a href="/" class="nav-link">Inicio</a>
             <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
             <a href="/dashboard" class="nav-link active">Dashboard</a>
             <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
             <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
@@ -73,6 +74,7 @@
         </section>
     </main>
 
+    <script src="/static/js/modal.js"></script>
     <script src="/static/js/auth.js"></script>
     <script>
     let chartR=null, chartL=null;
@@ -105,10 +107,22 @@
         }catch(e){console.error(e);}
     }
 
-    async function marcarPrestado(id){if(!confirm('¿Marcar como Prestado?'))return;const r=await fetch(`/api/reservas/${id}/prestar`,{method:'PUT'});if(r.ok)load();}
-    async function marcarDevuelto(id){if(!confirm('¿Confirmar devolución?'))return;const r=await fetch(`/api/reservas/${id}/devolver`,{method:'PUT'});if(r.ok)load();}
-    async function borrarConsultas(){if(!confirm('⚠️ ¿Borrar TODO el historial de consultas?'))return;const r=await fetch('/api/metricas',{method:'DELETE'});if(r.ok)load();}
-    async function borrarReservas(){if(!confirm('⚠️ ¿Borrar TODO el historial de reservas?'))return;const r=await fetch('/api/reservas',{method:'DELETE'});if(r.ok)load();}
+    async function marcarPrestado(id){
+        const ok=await modalConfirm({titulo:'Marcar como Prestado',mensaje:'¿Confirmas que el libro fue entregado al alumno?',icono:'📤',btnOk:'Sí, prestado',btnNo:'Cancelar'});
+        if(!ok)return;const r=await fetch(`/api/reservas/${id}/prestar`,{method:'PUT'});if(r.ok)load();
+    }
+    async function marcarDevuelto(id){
+        const ok=await modalConfirm({titulo:'Confirmar devolución',mensaje:'¿El alumno devolvió el libro correctamente?',icono:'✅',btnOk:'Sí, devuelto',btnNo:'Cancelar'});
+        if(!ok)return;const r=await fetch(`/api/reservas/${id}/devolver`,{method:'PUT'});if(r.ok)load();
+    }
+    async function borrarConsultas(){
+        const ok=await modalConfirm({titulo:'Borrar historial',mensaje:'Se eliminarán todas las consultas registradas. Esta acción no se puede deshacer.',icono:'🗑️',peligro:true,btnOk:'Borrar todo',btnNo:'Cancelar'});
+        if(!ok)return;const r=await fetch('/api/metricas',{method:'DELETE'});if(r.ok)load();
+    }
+    async function borrarReservas(){
+        const ok=await modalConfirm({titulo:'Borrar reservas',mensaje:'Se eliminarán todas las reservas del historial. Esta acción no se puede deshacer.',icono:'🗑️',peligro:true,btnOk:'Borrar todo',btnNo:'Cancelar'});
+        if(!ok)return;const r=await fetch('/api/reservas',{method:'DELETE'});if(r.ok)load();
+    }
 
     load(); setInterval(load,60000);
     </script>
