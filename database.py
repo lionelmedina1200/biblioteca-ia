@@ -114,6 +114,12 @@ def init_db():
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
+    # Migrar fecha_prestamo en reservas
+    try:
+        c.execute("ALTER TABLE reservas ADD COLUMN IF NOT EXISTS fecha_prestamo TIMESTAMP")
+    except Exception:
+        pass
+
     # Migrar avatar_id a usuarios si no existe
     try:
         c.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS avatar_id INTEGER DEFAULT 0")

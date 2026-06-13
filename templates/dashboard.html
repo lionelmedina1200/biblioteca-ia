@@ -97,11 +97,24 @@
                 <div class="metric-card"><div class="metric-icon">📚</div><div class="metric-info"><h3>${m.total_libros}</h3><p>Total Libros</p></div></div>
                 <div class="metric-card"><div class="metric-icon">✅</div><div class="metric-info"><h3>${m.disponibles}</h3><p>Disponibles</p></div></div>
                 <div class="metric-card"><div class="metric-icon">👥</div><div class="metric-info"><h3>${m.total_alumnos}</h3><p>Alumnos</p></div></div>
-                <div class="metric-card"><div class="metric-icon">⏳</div><div class="metric-info"><h3>${m.reservas_pendientes}</h3><p>Pendientes</p></div></div>`;
+                <div class="metric-card"><div class="metric-icon">⏳</div><div class="metric-info"><h3>${m.reservas_pendientes}</h3><p>Pendientes</p></div></div>
+                <div class="metric-card" style="border-left-color:#ef4444"><div class="metric-icon">⚠️</div><div class="metric-info"><h3>${m.prestamos_vencidos||0}</h3><p>Vencidos</p></div></div>\`;
             document.getElementById('table-consultas').innerHTML=m.consultas_recientes?.length?m.consultas_recientes.map(q=>`<tr><td>${q.consulta}</td><td>${q.resultados}</td><td>${q.timestamp.split(' ')[0]}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin consultas recientes</td></tr>';
             document.getElementById('table-reservas').innerHTML=r?.length?r.map(x=>{
-                const[bc,bl,bt]=x.estado==='prestado'?['badge-prestado','📖 Prestado',`<button class="btn-devolver" onclick="marcarDevuelto(${x.id})">✅ Devuelto</button>`]:x.estado==='devuelto'?['badge-devuelto','✅ Devuelto','']:['badge-pendiente','⏳ Pendiente',`<button class="btn-prestar" onclick="marcarPrestado(${x.id})">📤 Marcar Prestado</button>`];
-                return`<tr><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva?.split(' ')[0]||'-'}</td><td><span class="${bc}">${bl}</span> ${bt}</td></tr>`;
+                const hoy = new Date();
+                const fechaPrestamo = x.fecha_prestamo ? new Date(x.fecha_prestamo) : null;
+                const diasPrestado = fechaPrestamo ? Math.floor((hoy - fechaPrestamo) / 86400000) : 0;
+                // Vencido: prestado hace más de 7 días
+                const vencido = x.estado === 'prestado' && diasPrestado > 7;
+                const[bc,bl,bt]=x.estado==='prestado'
+                    ? [vencido ? 'badge-pendiente' : 'badge-prestado',
+                       vencido ? `⚠️ Vencido (${diasPrestado}d)` : '📖 Prestado',
+                       `<button class="btn-devolver" onclick="marcarDevuelto(${x.id})">✅ Devuelto</button>`]
+                    : x.estado==='devuelto'
+                    ? ['badge-devuelto','✅ Devuelto','']
+                    : ['badge-pendiente','⏳ Pendiente',`<button class="btn-prestar" onclick="marcarPrestado(${x.id})">📤 Marcar Prestado</button>`];
+                const rowStyle = vencido ? 'background:rgba(239,68,68,0.06);' : '';
+                return`<tr style="${rowStyle}"><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva?.split(' ')[0]||'-'}</td><td><span class="${bc}">${bl}</span> ${bt}</td></tr>`;
             }).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin reservas</td></tr>';
             initCharts(r||[],m);
         }catch(e){console.error(e);}

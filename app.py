@@ -218,11 +218,12 @@ def api_registro():
 @app.route("/api/chat", methods=["POST"])
 def chat():
     try:
-        data = request.json or {}
+        data     = request.json or {}
         consulta = data.get("mensaje", "").strip()
+        historial = data.get("historial", [])  # historial de la conversación
         if not consulta:
             return jsonify({"error": "El mensaje está vacío"}), 400
-        respuesta = procesar_consulta(consulta)
+        respuesta = procesar_consulta(consulta, historial=historial)
         return jsonify({"respuesta": respuesta})
     except Exception as e:
         traceback.print_exc()
@@ -230,25 +231,34 @@ def chat():
 
 @app.route("/api/libros")
 def api_libros():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
-    busqueda = request.args.get("busqueda", "")
-    conn = get_db()
-    c = conn.cursor()
-    like = f"%{busqueda}%"
+    page           = request.args.get("page", 1, type=int)
+    per_page       = request.args.get("per_page", 10, type=int)
+    busqueda       = request.args.get("busqueda", "")
+    categoria      = request.args.get("categoria", "")
+    solo_disp      = request.args.get("solo_disponibles", "")
+    conn = get_db(); c = conn.cursor()
+
+    where_parts = []
+    params = []
+
     if busqueda:
-        c.execute("SELECT COUNT(*) FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s", (like, like, like))
-    else:
-        c.execute("SELECT COUNT(*) FROM libros")
+        like = f"%{busqueda}%"
+        where_parts.append("(titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s OR editorial ILIKE %s)")
+        params.extend([like, like, like, like])
+    if categoria:
+        where_parts.append("LOWER(categoria) = LOWER(%s)")
+        params.append(categoria)
+    if solo_disp == '1':
+        where_parts.append("disponible > 0")
+
+    where_clause = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
+
+    c.execute(f"SELECT COUNT(*) FROM libros {where_clause}", params)
     total = c.fetchone()[0]
     offset = (page - 1) * per_page
-    if busqueda:
-        c.execute("SELECT * FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s", (like, like, like, per_page, offset))
-    else:
-        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT %s OFFSET %s", (per_page, offset))
+    c.execute(f"SELECT * FROM libros {where_clause} ORDER BY categoria, titulo LIMIT %s OFFSET %s", params + [per_page, offset])
     libros = fetchall_as_dicts(c)
-    c.close()
-    conn.close()
+    c.close(); conn.close()
     return jsonify({
         "libros": libros,
         "total": total,
@@ -893,6 +903,53 @@ def get_session():
             "es_biblio": session["usuario"]["rol"] == "bibliotecario"
         })
     return jsonify({"logged_in": False})
+
+
+@app.route("/api/libros/importar-excel", methods=["POST"])
+@bibliotecario_required
+def importar_excel():
+    try:
+        if 'archivo' not in request.files:
+            return jsonify({"error": "No se recibió ningún archivo"}), 400
+        archivo = request.files['archivo']
+        if not archivo.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({"error": "Solo se aceptan archivos Excel (.xlsx o .xls)"}), 400
+
+        import openpyxl, io
+        wb = openpyxl.load_workbook(io.BytesIO(archivo.read()))
+        conn = get_db(); c = conn.cursor()
+        total = 0; errores = 0
+
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            categoria = sheet_name
+            headers = [str(cell.value).lower().strip() if cell.value else '' for cell in ws[1]]
+
+            titulo_idx = autor_idx = editorial_idx = None
+            for i, h in enumerate(headers):
+                if 'titulo' in h: titulo_idx = i
+                if 'autor'  in h: autor_idx  = i
+                if 'editorial' in h: editorial_idx = i
+
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                titulo = str(row[titulo_idx]).strip() if titulo_idx is not None and row[titulo_idx] else None
+                if not titulo or titulo == 'None': continue
+                autor     = str(row[autor_idx]).strip()    if autor_idx    is not None and row[autor_idx]    else ''
+                editorial = str(row[editorial_idx]).strip() if editorial_idx is not None and row[editorial_idx] else ''
+                if autor == 'None': autor = ''
+                if editorial == 'None': editorial = ''
+                try:
+                    c.execute("INSERT INTO libros (titulo, autor, editorial, categoria, disponible) VALUES (%s,%s,%s,%s,1)",
+                              (titulo, autor, editorial, categoria))
+                    total += 1
+                except Exception:
+                    errores += 1
+
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True, "mensaje": f"Importados {total} libros correctamente.", "errores": errores})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Error al procesar el archivo"}), 500
 
 @app.route("/landing")
 def landing():
