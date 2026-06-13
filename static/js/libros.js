@@ -18,15 +18,21 @@ async function loadLibros(page = 1) {
         const data = await res.json();
         const tbody = document.getElementById('admin-tbody');
 
-        tbody.innerHTML = data.libros.map(l => `
-            <tr id="fila-${l.id}">
-                <td>${l.id}</td>
+        // Determinar los IDs más recientes para badge NUEVO
+        const todosIds = data.libros.map(l => l.id).sort((a,b) => b-a);
+        const idsNuevos = new Set(todosIds.slice(0, 10));
+
+        tbody.innerHTML = data.libros.map(l => {
+            const esNuevo = idsNuevos.has(l.id);
+            return `
+            <tr id="fila-${l.id}" style="cursor:pointer;" onclick="abrirDetalleLibro(${l.id}, event)">
+                <td>${l.id} ${esNuevo ? '<span style='background:#1e40af;color:#93c5fd;font-size:0.65rem;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:4px;'>NUEVO</span>' : ''}</td>
                 <td><strong>${l.titulo}</strong></td>
                 <td>${l.autor || '-'}</td>
                 <td>${l.editorial || '-'}</td>
                 <td>${l.categoria || '-'}</td>
                 <td>
-                    <div class="stock-control">
+                    <div class="stock-control" onclick="event.stopPropagation()">
                         <input type="number" min="0" value="${l.disponible}" class="stock-input" data-libro-id="${l.id}">
                         <button onclick="actualizarStock(${l.id})" class="btn-stock">OK</button>
                     </div>
@@ -36,14 +42,14 @@ async function loadLibros(page = 1) {
                         ${l.disponible > 0 ? l.disponible + ' en stock' : 'Sin stock'}
                     </span>
                 </td>
-                <td>
+                <td onclick="event.stopPropagation()">
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                         <button class="btn-editar" onclick="abrirModalEditar(${l.id})">Editar</button>
                         <button class="btn-eliminar-libro" onclick="eliminarLibro(${l.id}, '${(l.titulo||'').replace(/'/g, '').replace(/"/g, '')}')">Eliminar</button>
                     </div>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
 
         renderPagination(data.total_pages, page);
     } catch(err) {
@@ -381,3 +387,106 @@ document.getElementById('admin-per-page')?.addEventListener('change', e => {
 });
 
 if (document.getElementById('admin-tbody')) loadLibros(1);
+
+// ── Panel detalle libro (bibliotecaria) ──────────────────
+let _librosAdminCache = [];
+
+async function abrirDetalleLibro(id, event) {
+    // No abrir si click en botones de acción
+    if (event && event.target.closest('button, input')) return;
+
+    // Buscar el libro en cache o cargarlo
+    if (!_librosAdminCache.length) {
+        const res  = await fetch('/api/libros?per_page=500');
+        const data = await res.json();
+        _librosAdminCache = data.libros || [];
+    }
+    const libro = _librosAdminCache.find(l => l.id === id);
+    if (!libro) return;
+
+    // Crear o actualizar panel
+    let panel = document.getElementById('panel-detalle-admin');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'panel-detalle-admin';
+        panel.style.cssText = 'position:fixed;right:0;top:0;bottom:0;width:340px;max-width:90vw;background:var(--bg-card);border-left:1px solid var(--border);z-index:2000;padding:1.4rem;overflow-y:auto;box-shadow:-8px 0 30px rgba(0,0,0,0.4);animation:slideFromRight 0.2s ease;';
+        document.body.appendChild(panel);
+    }
+
+    const disp = libro.disponible > 0 ? libro.disponible + ' en stock' : 'Sin stock';
+    const dispColor = libro.disponible > 0 ? '#22c55e' : '#f87171';
+
+    let capsHTML = '';
+    if (libro.capitulo && libro.capitulo.trim()) {
+        const raw = libro.capitulo;
+        if (raw.includes('BLOQUE:')) {
+            const bloques = raw.split('---').filter(b => b.trim());
+            capsHTML = '<div style="margin-top:1rem;"><div style="color:var(--azul-claro);font-weight:700;font-size:0.82rem;margin-bottom:0.5rem;">CONTENIDO</div>' +
+                bloques.map(b => {
+                    const lines  = b.split('||');
+                    const nombre = lines[0].replace('BLOQUE:', '').trim();
+                    const caps   = lines.slice(1).filter(c => c.trim());
+                    return '<div style="margin-bottom:0.8rem;">' +
+                           '<div style="font-weight:700;color:var(--text-heading);font-size:0.82rem;margin-bottom:3px;">' + nombre + '</div>' +
+                           caps.map(c => '<div style="padding:3px 8px;background:var(--bg-input);border-radius:5px;font-size:0.78rem;color:var(--text-main);margin-bottom:2px;">' + c + '</div>').join('') +
+                           '</div>';
+                }).join('') + '</div>';
+        } else {
+            const caps = raw.split('||').filter(c => c.trim());
+            capsHTML = '<div style="margin-top:1rem;"><div style="color:var(--azul-claro);font-weight:700;font-size:0.82rem;margin-bottom:0.5rem;">CAPÍTULOS</div>' +
+                caps.map((c,i) => '<div style="padding:3px 8px;background:var(--bg-input);border-radius:5px;font-size:0.78rem;color:var(--text-main);margin-bottom:2px;">' + (i+1) + '. ' + c + '</div>').join('') +
+                '</div>';
+        }
+    }
+
+    panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
+            <span style="color:var(--azul-claro);font-size:0.75rem;font-weight:700;">${libro.categoria || 'Sin categoría'}</span>
+            <button onclick="cerrarDetalleAdmin()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;padding:0;">✕</button>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--text-heading);line-height:1.3;margin-bottom:0.3rem;">${libro.titulo}</div>
+        <div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.2rem;">${libro.autor || ''}</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+                <span style="color:var(--text-muted);">Editorial</span>
+                <span style="color:var(--text-heading);font-weight:500;">${libro.editorial || '-'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+                <span style="color:var(--text-muted);">Stock</span>
+                <span style="color:${dispColor};font-weight:700;">${disp}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:0.85rem;">
+                <span style="color:var(--text-muted);">ID</span>
+                <span style="color:var(--text-heading);">#${libro.id}</span>
+            </div>
+        </div>
+        ${capsHTML}
+        <div style="display:flex;gap:0.6rem;margin-top:1.4rem;">
+            <button onclick="abrirModalEditar(${libro.id});cerrarDetalleAdmin();"
+                style="flex:1;padding:10px;background:rgba(59,130,246,0.15);border:1.5px solid var(--azul-claro);color:var(--azul-claro);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.88rem;">
+                Editar
+            </button>
+            <button onclick="eliminarLibro(${libro.id},'${(libro.titulo||'').replace(/'/g,'').replace(/"/g,'')}');cerrarDetalleAdmin();"
+                style="flex:1;padding:10px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.88rem;">
+                Eliminar
+            </button>
+        </div>`;
+
+    // Cerrar al hacer click fuera
+    setTimeout(() => {
+        document.addEventListener('click', cerrarDetalleClickAfuera);
+    }, 100);
+}
+
+function cerrarDetalleAdmin() {
+    const panel = document.getElementById('panel-detalle-admin');
+    if (panel) panel.remove();
+    document.removeEventListener('click', cerrarDetalleClickAfuera);
+}
+
+function cerrarDetalleClickAfuera(e) {
+    const panel = document.getElementById('panel-detalle-admin');
+    if (panel && !panel.contains(e.target) && !e.target.closest('#admin-tbody')) {
+        cerrarDetalleAdmin();
+    }
+}

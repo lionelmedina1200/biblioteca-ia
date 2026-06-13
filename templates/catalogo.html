@@ -176,6 +176,16 @@
     <script src="/static/js/auth.js"></script>
     <script>
     let currentPage = 1, perPage = 24, filtroDisp = '', libroSeleccionado = null;
+    let _idsNuevos = new Set();
+
+    async function cargarIdsNuevos() {
+        const res  = await fetch('/api/libros?per_page=10&page=1');
+        const data = await res.json();
+        // los últimos 10 por ID más alto
+        const todos = await fetch('/api/libros?per_page=500').then(r=>r.json());
+        const sorted = (todos.libros||[]).map(l=>l.id).sort((a,b)=>b-a).slice(0,10);
+        _idsNuevos = new Set(sorted);
+    }
 
     async function loadCatalogo(page = 1) {
         currentPage = page;
@@ -197,8 +207,11 @@
             return;
         }
 
-        grid.innerHTML = data.libros.map(l => `
-            <div class="libro-card" onclick="abrirDetalle(${l.id})">
+        grid.innerHTML = data.libros.map(l => {
+            const esNuevo = _idsNuevos.has(l.id);
+            return `
+            <div class="libro-card" onclick="abrirDetalle(${l.id})" style="position:relative;">
+                ${esNuevo ? '<span style="position:absolute;top:10px;right:10px;background:#1e40af;color:#93c5fd;font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:4px;letter-spacing:0.05em;">NUEVO</span>' : ''}
                 <div class="libro-card-cat">${l.categoria || 'Sin categoría'}</div>
                 <div class="libro-card-titulo">${l.titulo}</div>
                 <div class="libro-card-autor">${l.autor || ''}</div>
@@ -208,7 +221,8 @@
                         ${l.disponible > 0 ? l.disponible + ' disponible' + (l.disponible > 1 ? 's' : '') : 'Sin stock'}
                     </span>
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
 
         // Paginación
         const total = data.total_pages;
@@ -309,6 +323,7 @@
     document.getElementById('filtro-categoria').addEventListener('change', () => { _librosCache = []; loadCatalogo(1); });
 
     cargarCategorias();
+    cargarIdsNuevos();
     loadCatalogo(1);
     </script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>

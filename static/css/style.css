@@ -536,3 +536,4 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
 .custom-modal-btn-confirm.danger:hover { background: #dc2626; }
 .custom-modal-btn-ok { background: var(--azul-claro); color: #fff; }
 .custom-modal-btn-ok:hover { background: var(--azul-claro); }
+@keyframes slideFromRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
