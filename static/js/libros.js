@@ -33,7 +33,20 @@ async function loadLibros(page = 1) {
         const idsNuevos = new Set(todosIds.slice(0, Math.min(10, todosIds.length)));
 
         // Renderizar como CARDS en grilla
-        const grid = document.getElementById('libros-grid');
+        let grid = document.getElementById('libros-grid');
+        if (!grid) {
+            // Crear el grid si no existe
+            grid = document.createElement('div');
+            grid.id = 'libros-grid';
+            grid.className = 'libros-admin-grid';
+            const main = document.querySelector('.admin-main') || document.body;
+            const toolbar = document.querySelector('.admin-toolbar');
+            if (toolbar && toolbar.nextSibling) {
+                main.insertBefore(grid, toolbar.nextSibling.nextSibling);
+            } else {
+                main.appendChild(grid);
+            }
+        }
         if (grid) {
             grid.innerHTML = data.libros.map(l => {
                 const esNuevo   = idsNuevos.has(l.id);
@@ -403,7 +416,14 @@ document.getElementById('admin-per-page')?.addEventListener('change', e => {
     loadLibros(1);
 });
 
-if (document.getElementById('libros-grid') || document.getElementById('admin-tbody')) loadLibros(1);
+// Iniciar siempre que estemos en la página de libros
+document.addEventListener('DOMContentLoaded', function() {
+    loadLibros(1);
+});
+// También iniciar si DOMContentLoaded ya pasó
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    loadLibros(1);
+}
 
 // ── Panel detalle libro (bibliotecaria) ──────────────────
 async function abrirDetalleLibro(id, event) {
