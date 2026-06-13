@@ -2,6 +2,13 @@
 // libros.js — gestión completa de libros
 // ══════════════════════════════════════════════════════════
 
+function getNuevoBadge() {
+    var span = document.createElement('span');
+    span.textContent = 'NUEVO';
+    span.style.cssText = 'background:#1e40af;color:#93c5fd;font-size:0.65rem;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:4px;';
+    return span.outerHTML;
+}
+
 let currentPage = 1;
 let perPage = 10;
 let tipoEstructura = 'ninguno'; // 'ninguno' | 'capitulos' | 'bloques'
@@ -12,21 +19,23 @@ let modoEdicion = false;
 // ── Cargar tabla ─────────────────────────────────────────
 async function loadLibros(page = 1) {
     currentPage = page;
+    _librosAdminCache = []; // limpiar cache al recargar
     const busqueda = document.getElementById('admin-search')?.value || '';
     try {
         const res  = await fetch(`/api/libros?page=${page}&per_page=${perPage}&busqueda=${encodeURIComponent(busqueda)}`);
         const data = await res.json();
         const tbody = document.getElementById('admin-tbody');
+        if (!tbody) return;
 
-        // Determinar los IDs más recientes para badge NUEVO
-        const todosIds = data.libros.map(l => l.id).sort((a,b) => b-a);
-        const idsNuevos = new Set(todosIds.slice(0, 10));
+        // Badge NUEVO: los 10 IDs más altos de esta página
+        const todosIds = [...data.libros].map(l => l.id).sort((a,b) => b-a);
+        const idsNuevos = new Set(todosIds.slice(0, Math.min(10, todosIds.length)));
 
         tbody.innerHTML = data.libros.map(l => {
             const esNuevo = idsNuevos.has(l.id);
             return `
             <tr id="fila-${l.id}" style="cursor:pointer;" onclick="abrirDetalleLibro(${l.id}, event)">
-                <td>${l.id} ${esNuevo ? '<span style='background:#1e40af;color:#93c5fd;font-size:0.65rem;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:4px;'>NUEVO</span>' : ''}</td>
+                <td>${l.id} ${esNuevo ? getNuevoBadge() : ''}</td>
                 <td><strong>${l.titulo}</strong></td>
                 <td>${l.autor || '-'}</td>
                 <td>${l.editorial || '-'}</td>
