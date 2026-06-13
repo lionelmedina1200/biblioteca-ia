@@ -403,7 +403,7 @@ document.getElementById('admin-per-page')?.addEventListener('change', e => {
     loadLibros(1);
 });
 
-if (document.getElementById('admin-tbody')) loadLibros(1);
+if (document.getElementById('libros-grid') || document.getElementById('admin-tbody')) loadLibros(1);
 
 // ── Panel detalle libro (bibliotecaria) ──────────────────
 async function abrirDetalleLibro(id, event) {
@@ -501,7 +501,7 @@ function cerrarDetalleAdmin() {
 
 function cerrarDetalleClickAfuera(e) {
     const panel = document.getElementById('panel-detalle-admin');
-    if (panel && !panel.contains(e.target) && !e.target.closest('#admin-tbody')) {
+    if (panel && !panel.contains(e.target) && !e.target.closest('.libro-card-admin')) {
         cerrarDetalleAdmin();
     }
 }
