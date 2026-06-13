@@ -101,6 +101,23 @@
         .lca-stock-input { width: 60px !important; }
         .lca-acciones { display: flex; gap: 0.5rem; }
         .lca-acciones button { flex: 1; }
+
+        /* ── Cards admin ── */
+        .libros-admin-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:1.2rem; margin-top:1rem; }
+        .libro-card-admin { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem; display:flex; flex-direction:column; gap:0.5rem; transition:all 0.2s; }
+        .libro-card-admin:hover { border-color:rgba(59,130,246,0.35); box-shadow:var(--sombra-hover); }
+        .lca-header { display:flex; align-items:center; justify-content:space-between; }
+        .lca-cat    { color:var(--azul-claro); font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
+        .lca-nuevo  { background:#1e40af; color:#93c5fd; font-size:0.65rem; font-weight:800; padding:2px 7px; border-radius:4px; }
+        .lca-titulo { font-weight:700; color:var(--text-heading); font-size:0.95rem; line-height:1.35; }
+        .lca-autor  { font-size:0.82rem; color:var(--text-muted); }
+        .lca-meta   { display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-muted); padding-top:0.3rem; }
+        .lca-id     { font-weight:600; }
+        .lca-footer { display:flex; flex-direction:column; gap:0.6rem; margin-top:0.4rem; padding-top:0.8rem; border-top:1px solid var(--border); }
+        .lca-stock  { display:flex; align-items:center; gap:0.5rem; }
+        .lca-stock-input { width:60px !important; }
+        .lca-acciones { display:flex; gap:0.5rem; }
+        .lca-acciones button { flex:1; }
     </style>
 </head>
 <body>
@@ -204,23 +221,8 @@
                 <option value="50">50</option>
             </select>
         </div>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Título</th>
-                        <th>Autor</th>
-                        <th>Editorial</th>
-                        <th>Categoría</th>
-                        <th>Stock</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-tbody"></tbody>
-            </table>
-        </div>
+        <div id="libros-grid" class="libros-admin-grid"></div>
+        <tbody id="admin-tbody" style="display:none;"></tbody>
         <div class="pagination" id="pagination"></div>
     </main>
 
