@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Libros · Biblioteca IA</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <style>
+        /* ── Modal agregar/editar ── */
+        .modal-libro {
+            display: none; position: fixed; inset: 0; z-index: 3000;
+            background: rgba(2,6,23,0.8); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-libro.open { display: flex; }
+        .modal-libro-content {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); width: 100%; max-width: 560px;
+            max-height: 92vh; display: flex; flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-libro-body { padding: 1.8rem; overflow-y: auto; flex: 1; }
+        .modal-libro-body h3 { color: var(--azul-claro); margin-bottom: 1.2rem; font-size: 1.1rem; }
+        .modal-libro-footer {
+            display: flex; gap: 0.8rem; padding: 1rem 1.8rem;
+            justify-content: flex-end; border-top: 1px solid var(--border);
+            background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius);
+            flex-shrink: 0;
+        }
+
+        /* ── Tipo estructura ── */
+        .tipo-selector { display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .tipo-btn {
+            padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+            background: var(--bg-input); color: var(--text-muted); cursor: pointer;
+            font-size: 0.88rem; font-weight: 600; transition: all 0.15s;
+        }
+        .tipo-btn.active { background: rgba(59,130,246,0.15); color: var(--azul-claro); border-color: var(--azul-claro); }
+
+        /* ── Bloques y capítulos ── */
+        .bloque-wrap { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 0.8rem; }
+        .bloque-header { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; }
+        .bloque-titulo-input { flex: 1; padding: 6px 10px; font-size: 0.88rem; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-heading); outline: none; }
+        .bloque-titulo-input:focus { border-color: var(--azul-claro); }
+        .btn-del-bloque { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.78rem; }
+        .btn-del-bloque:hover { background: #7f1d1d; }
+        .cap-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .cap-num { color: var(--text-muted); font-size: 0.78rem; font-weight: 600; min-width: 22px; text-align: right; }
+        .cap-input { flex: 1; padding: 6px 10px; font-size: 0.85rem; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 7px; color: var(--text-heading); outline: none; }
+        .cap-input:focus { border-color: var(--azul-claro); }
+        .btn-del-cap { background: none; border: 1px solid #7f1d1d; color: #f87171; border-radius: 6px; padding: 3px 7px; cursor: pointer; font-size: 0.75rem; }
+        .btn-del-cap:hover { background: #7f1d1d; }
+        .btn-add-cap { padding: 5px 12px; background: var(--azul-marino); border: 1.5px solid var(--azul-claro); color: var(--azul-claro); border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 600; }
+        .btn-add-cap:hover { background: var(--azul-claro); color: #fff; }
+        .btn-add-bloque { padding: 7px 14px; background: transparent; border: 1.5px solid var(--azul-claro); color: var(--azul-claro); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.88rem; margin-top: 0.4rem; }
+        .btn-add-bloque:hover { background: var(--azul-claro); color: #fff; }
+        .caps-hint { color: var(--text-muted); font-size: 0.8rem; font-style: italic; margin: 4px 0; }
+
+        /* ── Vista tabla editable (PC only) ── */
+        @media (min-width: 900px) {
+            .tabla-editable { overflow-x: auto; }
+            .tabla-editable table { min-width: 900px; }
+            .td-edit input, .td-edit select {
+                width: 100%; padding: 5px 8px; background: var(--bg-input);
+                border: 1.5px solid var(--border); border-radius: 6px;
+                color: var(--text-heading); font-size: 0.88rem; outline: none;
+            }
+            .td-edit input:focus, .td-edit select:focus { border-color: var(--azul-claro); }
+        }
+        .btn-editar { padding: 5px 10px; background: rgba(59,130,246,0.15); border: 1.5px solid var(--azul-claro); color: var(--azul-claro); border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 600; }
+        .btn-editar:hover { background: var(--azul-claro); color: #fff; }
+        .btn-guardar-inline { padding: 5px 10px; background: rgba(34,197,94,0.15); border: 1.5px solid #22c55e; color: #22c55e; border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 600; }
+        .btn-guardar-inline:hover { background: #22c55e; color: #fff; }
+        .btn-cancelar-inline { padding: 5px 10px; background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); border-radius: 7px; cursor: pointer; font-size: 0.82rem; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="logo"><span class="logo-icon">📚</span><h1>Gestión de Libros</h1></div>
+            <div id="user-menu"></div>
+        </div>
+        <nav class="header-nav"><div class="header-nav-inner">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
+            <a href="/dashboard" class="nav-link dashboard-link">Dashboard</a>
+            <a href="/registro" class="nav-link">Registrar Alumno</a>
+            <a href="/libros" class="nav-link active">Libros</a>
+        </div></nav>
+    </header>
+
+    <!-- MODAL AGREGAR / EDITAR LIBRO -->
+    <div id="modal-libro" class="modal-libro">
+        <div class="modal-libro-content">
+            <div class="modal-libro-body">
+                <h3 id="modal-libro-titulo">Agregar Libro</h3>
+                <input type="hidden" id="edit-id" value="">
+
+                <div class="form-group">
+                    <label>Título <span style="color:var(--rojo)">*</span></label>
+                    <input type="text" id="nuevo-titulo" placeholder="Ej: Biología Molecular" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Autor <span style="color:var(--rojo)">*</span></label>
+                    <input type="text" id="nuevo-autor" placeholder="Ej: Bruce Alberts" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Editorial</label>
+                    <input type="text" id="nuevo-editorial" placeholder="Ej: Santillana" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Categoría <span style="color:var(--rojo)">*</span></label>
+                    <input type="text" id="nuevo-categoria" placeholder="Ej: Matemáticas, Física, Literatura..." class="form-input" list="categorias-list">
+                    <datalist id="categorias-list"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>Stock inicial</label>
+                    <input type="number" id="nuevo-stock" value="1" min="0" class="form-input" style="max-width:100px">
+                </div>
+
+                <!-- ESTRUCTURA: ninguna / capítulos / bloques+capítulos -->
+                <div class="form-group">
+                    <label>Estructura del libro <span style="color:var(--text-muted);font-size:0.78rem;">(opcional)</span></label>
+                    <div class="tipo-selector">
+                        <button type="button" class="tipo-btn active" onclick="setTipo('ninguno')">Sin estructura</button>
+                        <button type="button" class="tipo-btn" onclick="setTipo('capitulos')">Solo capítulos</button>
+                        <button type="button" class="tipo-btn" onclick="setTipo('bloques')">Bloques + capítulos</button>
+                    </div>
+
+                    <!-- Solo capítulos -->
+                    <div id="panel-capitulos" style="display:none;">
+                        <div id="caps-lista"></div>
+                        <p id="caps-hint" class="caps-hint">Sin capítulos — tocá el botón para agregar</p>
+                        <button type="button" class="btn-add-cap" onclick="addCap(null)">＋ Agregar capítulo</button>
+                    </div>
+
+                    <!-- Bloques + capítulos -->
+                    <div id="panel-bloques" style="display:none;">
+                        <div id="bloques-lista"></div>
+                        <button type="button" class="btn-add-bloque" onclick="addBloque()">＋ Agregar bloque</button>
+                    </div>
+                </div>
+
+                <div id="agregar-error" class="error-msg" style="display:none;"></div>
+                <div id="agregar-ok" class="success-msg" style="display:none;"></div>
+            </div>
+            <div class="modal-libro-footer">
+                <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn-primary" onclick="guardarLibro()">Guardar Libro</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="admin-main">
+        <!-- Importar Excel -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.4rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <div style="font-weight:600;color:var(--text-heading);font-size:0.92rem;">Importar libros desde Excel</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);">Cada hoja del Excel se usa como categoría. Columnas: titulo, autor, editorial</div>
+            </div>
+            <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none;" onchange="importarExcel()">
+            <button onclick="document.getElementById('excel-input').click()" style="padding:9px 18px;background:rgba(59,130,246,0.15);border:1.5px solid var(--azul-claro);color:var(--azul-claro);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.88rem;">
+                Subir Excel
+            </button>
+            <div id="import-msg" style="font-size:0.85rem;display:none;"></div>
+        </div>
+
+        <div class="admin-toolbar">
+            <input type="text" id="admin-search" placeholder="Buscar..." class="search-input">
+            <button class="btn-primary" onclick="abrirModalNuevo()" style="padding:10px 18px;font-size:0.9rem;">＋ Agregar Libro</button>
+            <select id="admin-per-page">
+                <option value="10">10 por página</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        <div class="table-container tabla-editable">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Autor</th>
+                        <th>Editorial</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-tbody"></tbody>
+            </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </main>
+
+    <script>
+    window.modalConfirm = function(o) {
+        return new Promise(function(resolve) {
+            var overlay = document.createElement('div');
+            overlay.className = 'custom-modal-overlay';
+            overlay.innerHTML =
+                '<div class="custom-modal-box">' +
+                    '<span class="custom-modal-icon">' + (o.icono||'❓') + '</span>' +
+                    '<div class="custom-modal-title">' + (o.titulo||'Confirmá') + '</div>' +
+                    '<div class="custom-modal-msg">' + (o.mensaje||'') + '</div>' +
+                    '<div class="custom-modal-btns">' +
+                        '<button class="custom-modal-btn-cancel" id="cm-no">' + (o.btnNo||'Cancelar') + '</button>' +
+                        '<button class="custom-modal-btn-confirm ' + (o.peligro?'danger':'') + '" id="cm-si">' + (o.btnOk||'Confirmar') + '</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+            function cerrar(r){ document.body.removeChild(overlay); resolve(r); }
+            overlay.querySelector('#cm-si').onclick  = function(){ cerrar(true); };
+            overlay.querySelector('#cm-no').onclick  = function(){ cerrar(false); };
+            overlay.onclick = function(e){ if(e.target===overlay) cerrar(false); };
+        });
+    };
+    window.modalAlert = function(o) {
+        return new Promise(function(resolve) {
+            var iconos = {success:'✅', error:'❌', info:'ℹ️', warning:'⚠️'};
+            var overlay = document.createElement('div');
+            overlay.className = 'custom-modal-overlay';
+            overlay.innerHTML =
+                '<div class="custom-modal-box">' +
+                    '<span class="custom-modal-icon">' + (iconos[o.tipo]||'ℹ️') + '</span>' +
+                    '<div class="custom-modal-title">' + (o.titulo||'Aviso') + '</div>' +
+                    '<div class="custom-modal-msg">' + (o.mensaje||'') + '</div>' +
+                    '<div class="custom-modal-btns">' +
+                        '<button class="custom-modal-btn-ok" id="cm-ok">Entendido</button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+            function cerrar(){ document.body.removeChild(overlay); resolve(); }
+            overlay.querySelector('#cm-ok').onclick = cerrar;
+            overlay.onclick = function(e){ if(e.target===overlay) cerrar(); };
+        });
+    };
+    </script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/libros.js"></script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
+</body>
+</html>
