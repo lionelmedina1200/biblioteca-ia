@@ -25,33 +25,39 @@ async function loadLibros(page = 1) {
         const todosIds = [...data.libros].map(l => l.id).sort((a,b) => b-a);
         const idsNuevos = new Set(todosIds.slice(0, Math.min(10, todosIds.length)));
 
-        tbody.innerHTML = data.libros.map(l => {
-            const esNuevo = idsNuevos.has(l.id);
-            return `<tr id="fila-${l.id}">
-                <td>${l.id}${esNuevo ? getNuevoBadge() : ''}</td>
-                <td><strong>${l.titulo}</strong></td>
-                <td>${l.autor || '-'}</td>
-                <td>${l.editorial || '-'}</td>
-                <td>${l.categoria || '-'}</td>
-                <td>
-                    <div class="stock-control">
-                        <input type="number" min="0" value="${l.disponible}" class="stock-input" data-libro-id="${l.id}">
-                        <button onclick="actualizarStock(${l.id})" class="btn-stock">OK</button>
-                    </div>
-                </td>
-                <td>
-                    <span class="badge ${l.disponible > 0 ? 'disponible' : 'no-disponible'}">
-                        ${l.disponible > 0 ? l.disponible + ' en stock' : 'Sin stock'}
-                    </span>
-                </td>
-                <td>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                        <button class="btn-editar" onclick="abrirModalEditar(${l.id})">Editar</button>
-                        <button class="btn-eliminar-libro" onclick="eliminarLibro(${l.id},'${(l.titulo||'').replace(/'/g,'').replace(/"/g,'')}')">Eliminar</button>
-                    </div>
-                </td>
-            </tr>`;
+        // Renderizar cards
+        const grid = document.getElementById('libros-grid');
+        if (!grid) return;
+        grid.innerHTML = data.libros.map(l => {
+            const esNuevo    = idsNuevos.has(l.id);
+            const dispColor  = l.disponible > 0 ? '#22c55e' : '#f87171';
+            const dispTxt    = l.disponible > 0 ? l.disponible + ' en stock' : 'Sin stock';
+            const tituloSafe = (l.titulo||'').replace(/'/g,'').replace(/"/g,'');
+            return '<div class="libro-card-admin" id="card-' + l.id + '">'
+                + '<div class="lca-header">'
+                    + '<span class="lca-cat">' + (l.categoria||'Sin categoría') + '</span>'
+                    + (esNuevo ? '<span class="lca-nuevo">NUEVO</span>' : '')
+                + '</div>'
+                + '<div class="lca-titulo">' + (l.titulo||'') + '</div>'
+                + '<div class="lca-autor">' + (l.autor||'') + '</div>'
+                + '<div class="lca-meta">'
+                    + '<span class="lca-editorial">' + (l.editorial||'-') + '</span>'
+                    + '<span class="lca-id">#' + l.id + '</span>'
+                + '</div>'
+                + '<div class="lca-footer">'
+                    + '<div class="lca-stock">'
+                        + '<input type="number" min="0" value="' + l.disponible + '" class="stock-input lca-stock-input" data-libro-id="' + l.id + '">'
+                        + '<button onclick="actualizarStock(' + l.id + ')" class="btn-stock">OK</button>'
+                        + '<span style="color:' + dispColor + ';font-weight:700;font-size:0.78rem;">' + dispTxt + '</span>'
+                    + '</div>'
+                    + '<div class="lca-acciones">'
+                        + '<button class="btn-editar" onclick="abrirModalEditar(' + l.id + ')">Editar</button>'
+                        + '<button class="btn-eliminar-libro" onclick="eliminarLibro(' + l.id + ',\'' + tituloSafe + '\')">Eliminar</button>'
+                    + '</div>'
+                + '</div>'
+            + '</div>';
         }).join('');
+        if (tbody) tbody.innerHTML = '';
 
         renderPagination(data.total_pages, page);
     } catch(err) {
