@@ -204,8 +204,23 @@
                 <option value="50">50</option>
             </select>
         </div>
-        <div id="libros-grid" class="libros-admin-grid"></div>
-        <tbody id="admin-tbody" style="display:none;"></tbody>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Autor</th>
+                        <th>Editorial</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-tbody"></tbody>
+            </table>
+        </div>
         <div class="pagination" id="pagination"></div>
     </main>
 
