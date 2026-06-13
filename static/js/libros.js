@@ -11,10 +11,11 @@ function getNuevoBadge() {
 
 let currentPage = 1;
 let perPage = 10;
-let tipoEstructura = 'ninguno'; // 'ninguno' | 'capitulos' | 'bloques'
+let tipoEstructura = 'ninguno';
 let bloquesCount = 0;
 let capsCount = 0;
 let modoEdicion = false;
+let _librosAdminCache = [];
 
 // ── Cargar tabla ─────────────────────────────────────────
 async function loadLibros(page = 1) {
@@ -398,8 +399,6 @@ document.getElementById('admin-per-page')?.addEventListener('change', e => {
 if (document.getElementById('admin-tbody')) loadLibros(1);
 
 // ── Panel detalle libro (bibliotecaria) ──────────────────
-let _librosAdminCache = [];
-
 async function abrirDetalleLibro(id, event) {
     // No abrir si click en botones de acción
     if (event && event.target.closest('button, input')) return;
