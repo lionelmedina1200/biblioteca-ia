@@ -256,7 +256,7 @@ def api_libros():
     c.execute(f"SELECT COUNT(*) FROM libros {where_clause}", params)
     total = c.fetchone()[0]
     offset = (page - 1) * per_page
-    c.execute(f"SELECT * FROM libros {where_clause} ORDER BY categoria, titulo LIMIT %s OFFSET %s", params + [per_page, offset])
+    c.execute(f"SELECT * FROM libros {where_clause} ORDER BY id DESC LIMIT %s OFFSET %s", params + [per_page, offset])
     libros = fetchall_as_dicts(c)
     c.close(); conn.close()
     return jsonify({
@@ -323,7 +323,7 @@ def marcar_prestado(reserva_id):
             return jsonify({"error": "La reserva no está en estado pendiente"}), 400
 
         # Marcar la reserva como prestada
-        c.execute("UPDATE reservas SET estado = 'prestado' WHERE id = %s", (reserva_id,))
+        c.execute("UPDATE reservas SET estado = 'prestado', fecha_prestamo = NOW() WHERE id = %s", (reserva_id,))
 
         # Si la reserva tiene un libro asociado, descontar 1 del stock (sin bajar de 0)
         if reserva["libro_id"]:
@@ -950,6 +950,76 @@ def importar_excel():
     except Exception:
         traceback.print_exc()
         return jsonify({"error": "Error al procesar el archivo"}), 500
+
+
+@app.route("/api/prestamos/vencidos")
+@bibliotecario_required
+def prestamos_vencidos():
+    try:
+        conn = get_db(); c = conn.cursor()
+        # Vencidos: prestados hace más de 7 días (libros de texto) o 14 días (literatura)
+        c.execute("""
+            SELECT r.id, r.nombre, r.email, r.fecha_prestamo, r.fecha_reserva,
+                   l.titulo, l.categoria,
+                   EXTRACT(DAY FROM NOW() - r.fecha_prestamo)::int as dias_prestado
+            FROM reservas r
+            LEFT JOIN libros l ON r.libro_id = l.id
+            WHERE r.estado = 'prestado'
+            AND r.fecha_prestamo IS NOT NULL
+            AND r.fecha_prestamo < NOW() - INTERVAL '7 days'
+            ORDER BY r.fecha_prestamo ASC
+        """)
+        vencidos = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(vencidos)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
+@app.route("/api/mis-prestamos")
+@login_required
+def mis_prestamos():
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("""
+            SELECT r.id, l.titulo, l.autor, l.categoria, r.estado,
+                   r.fecha_reserva as fecha, r.fecha_prestamo,
+                   CASE WHEN r.estado = 'prestado' AND r.fecha_prestamo IS NOT NULL
+                        THEN EXTRACT(DAY FROM NOW() - r.fecha_prestamo)::int
+                        ELSE 0 END as dias_prestado
+            FROM reservas r
+            LEFT JOIN libros l ON r.libro_id = l.id
+            WHERE r.usuario_id = %s
+            ORDER BY r.fecha_reserva DESC
+        """, (u["id"],))
+        rows = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(rows)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
+
+@app.route("/api/perfil/foto", methods=["PUT"])
+@login_required
+def actualizar_foto():
+    try:
+        u = session["usuario"]
+        if u.get("picture") and "googleusercontent" in str(u.get("picture","")):
+            return jsonify({"error": "Los usuarios de Google no pueden cambiar la foto aquí"}), 400
+        data = request.json or {}
+        foto_url = data.get("foto_url", "").strip()
+        if not foto_url:
+            return jsonify({"error": "URL de foto inválida"}), 400
+        conn = get_db(); c = conn.cursor()
+        c.execute("UPDATE usuarios SET picture=%s WHERE id=%s", (foto_url, u["id"]))
+        conn.commit(); c.close(); conn.close()
+        session["usuario"]["picture"] = foto_url
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Error al actualizar foto"}), 500
 
 @app.route("/landing")
 def landing():
