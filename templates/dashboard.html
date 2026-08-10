@@ -6,105 +6,33 @@
     <title>Dashboard · Biblioteca IA</title>
     <link rel="manifest" href="/static/manifest.json">
     <link rel="stylesheet" href="/static/css/style.css">
-    <script>
-    // Chart.js inline minimo para doughnut y bar charts
-    // Evita dependencias externas bloqueadas por Edge Tracking Prevention
-    (function() {
-        var chartInstances = {};
-        function getCtx(id) {
-            var canvas = document.getElementById(id);
-            return canvas ? canvas.getContext('2d') : null;
-        }
-        function drawDoughnut(ctx, data, colors, cutout) {
-            var W = ctx.canvas.width, H = ctx.canvas.height;
-            var cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 10;
-            var inner = r * (cutout ? 0.65 : 0);
-            var total = data.reduce(function(a,b){return a+b;},0);
-            ctx.clearRect(0,0,W,H);
-            if(!total){
-                ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-                ctx.fillStyle='#1e293b'; ctx.fill(); return;
-            }
-            var start = -Math.PI/2;
-            data.forEach(function(v,i){
-                var angle = (v/total)*Math.PI*2;
-                ctx.beginPath(); ctx.moveTo(cx,cy);
-                ctx.arc(cx,cy,r,start,start+angle);
-                ctx.closePath(); ctx.fillStyle=colors[i]; ctx.fill();
-                start+=angle;
-            });
-            if(inner>0){
-                ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2);
-                ctx.fillStyle='#151e32'; ctx.fill();
-            }
-            // Leyenda
-            var labels = ['Pendientes','Prestados','Devueltos'];
-            ctx.font='11px Arial'; ctx.textAlign='left';
-            data.forEach(function(v,i){
-                var y=H*0.82+i*16;
-                ctx.fillStyle=colors[i]; ctx.fillRect(W*0.1,y-9,10,10);
-                ctx.fillStyle='#94a3b8'; ctx.fillText(labels[i]+': '+v, W*0.1+14, y);
-            });
-        }
-        function drawBar(ctx, labels, values, colors) {
-            var W=ctx.canvas.width, H=ctx.canvas.height;
-            var pad={t:20,r:20,b:40,l:40};
-            var max=Math.max.apply(null,values)||1;
-            var bW=(W-pad.l-pad.r)/values.length*0.6;
-            var gap=(W-pad.l-pad.r)/values.length;
-            ctx.clearRect(0,0,W,H);
-            ctx.strokeStyle='#1e293b'; ctx.lineWidth=1;
-            for(var g=0;g<=4;g++){
-                var y=pad.t+(H-pad.t-pad.b)*g/4;
-                ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
-                ctx.fillStyle='#94a3b8'; ctx.font='10px Arial'; ctx.textAlign='right';
-                ctx.fillText(Math.round(max*(4-g)/4), pad.l-4, y+4);
-            }
-            values.forEach(function(v,i){
-                var x=pad.l+gap*i+(gap-bW)/2;
-                var bH=(v/max)*(H-pad.t-pad.b);
-                var y=H-pad.b-bH;
-                ctx.fillStyle=colors[i%colors.length];
-                ctx.beginPath();
-                ctx.roundRect ? ctx.roundRect(x,y,bW,bH,6) : ctx.rect(x,y,bW,bH);
-                ctx.fill();
-                ctx.fillStyle='#94a3b8'; ctx.font='11px Arial'; ctx.textAlign='center';
-                ctx.fillText(labels[i], x+bW/2, H-pad.b+14);
-            });
-        }
-        window.Chart = function(canvas, cfg) {
-            var ctx = typeof canvas==='string' ? getCtx(canvas) : canvas.getContext('2d');
-            if(!ctx) return {destroy:function(){}};
-            var id = canvas.id || Math.random();
-            if(chartInstances[id]) chartInstances[id].destroy();
-            var self = {
-                destroy: function(){ ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); delete chartInstances[id]; },
-                update: function(){}
-            };
-            chartInstances[id] = self;
-            var d = cfg.data.datasets[0].data;
-            var colors = cfg.data.datasets[0].backgroundColor;
-            if(cfg.type==='doughnut') {
-                drawDoughnut(ctx, d, colors, cfg.options&&cfg.options.cutout);
-            } else if(cfg.type==='bar') {
-                drawBar(ctx, cfg.data.labels, d, Array.isArray(colors)?colors:[colors]);
-            }
-            return self;
-        };
-    })();
-    </script>
     <style>
-        .skeleton { background: linear-gradient(90deg,var(--bg-card) 25%,#1e293b 50%,var(--bg-card) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-        .skel-metric { height:80px; border-radius:var(--radius); }
+        .dashboard-main { padding:1.5rem; max-width:1200px; margin:0 auto; }
+        .metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
         .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin:1.5rem 0; }
         @media(max-width:700px){ .charts-grid{grid-template-columns:1fr;} }
         .chart-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem; }
-        .chart-card h3 { color:var(--text-heading); font-size:0.95rem; margin-bottom:1rem; }
-        .chart-wrap { position:relative; height:200px; }
-        .metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
-        .metric-card { transition:all 0.3s; }
-        .metric-card:hover { transform:translateY(-4px); box-shadow:var(--sombra-hover); }
+        .chart-card h3 { font-size:0.95rem; margin-bottom:1rem; color:var(--text-heading); }
+        .chart-wrap { height:200px; position:relative; }
+        .chart-wrap canvas { width:100%!important; height:100%!important; }
+        .dashboard-table-section { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem; margin-bottom:1.5rem; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+        .section-header h2 { font-size:0.95rem; color:var(--text-heading); }
+        .btn-trash { background:transparent; border:1.5px solid #7f1d1d; color:#f87171; border-radius:8px; padding:6px 14px; cursor:pointer; font-size:0.82rem; font-weight:600; }
+        .btn-trash:hover { background:#7f1d1d; }
+        .skeleton { background:linear-gradient(90deg,var(--bg-card) 25%,#1e293b 50%,var(--bg-card) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .skel-card { height:90px; border-radius:var(--radius); }
+        .custom-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999; }
+        .custom-modal-box { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:2rem; max-width:400px; width:90%; text-align:center; }
+        .custom-modal-icon { font-size:2rem; display:block; margin-bottom:0.8rem; }
+        .custom-modal-title { font-size:1.1rem; font-weight:700; color:var(--text-heading); margin-bottom:0.5rem; }
+        .custom-modal-msg { font-size:0.9rem; color:var(--text-muted); margin-bottom:1.2rem; }
+        .custom-modal-btns { display:flex; gap:0.8rem; justify-content:center; }
+        .custom-modal-btn-cancel { padding:8px 20px; background:transparent; border:1.5px solid var(--border); color:var(--text-muted); border-radius:8px; cursor:pointer; font-weight:500; }
+        .custom-modal-btn-confirm { padding:8px 20px; background:var(--azul-claro); border:none; color:#fff; border-radius:8px; cursor:pointer; font-weight:700; }
+        .custom-modal-btn-confirm.danger { background:#ef4444; }
+        .custom-modal-btn-ok { padding:8px 24px; background:var(--azul-claro); border:none; color:#fff; border-radius:8px; cursor:pointer; font-weight:700; }
     </style>
 </head>
 <body>
@@ -117,22 +45,22 @@
             <a href="/" class="nav-link">Inicio</a>
             <a href="/checkin" class="nav-link">Check-in</a>
             <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
-            <a href="/dashboard" class="nav-link active">Dashboard</a>
-            <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
-            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+            <a href="/dashboard" class="nav-link dashboard-link active">Dashboard</a>
+            <a href="/registro" class="nav-link">Registrar Alumno</a>
+            <a href="/libros" class="nav-link">Libros</a>
         </div></nav>
     </header>
 
     <main class="dashboard-main">
-        <section class="metrics-grid" id="metrics-grid">
-            <div class="metric-card skeleton skel-metric"></div>
-            <div class="metric-card skeleton skel-metric"></div>
-            <div class="metric-card skeleton skel-metric"></div>
-            <div class="metric-card skeleton skel-metric"></div>
-            <div class="metric-card skeleton skel-metric"></div>
-        </section>
+        <div class="metrics-grid" id="metrics-grid">
+            <div class="metric-card skeleton skel-card"></div>
+            <div class="metric-card skeleton skel-card"></div>
+            <div class="metric-card skeleton skel-card"></div>
+            <div class="metric-card skeleton skel-card"></div>
+            <div class="metric-card skeleton skel-card"></div>
+        </div>
 
-        <section class="charts-grid">
+        <div class="charts-grid">
             <div class="chart-card">
                 <h3>📊 Estado de reservas</h3>
                 <div class="chart-wrap"><canvas id="chart-reservas"></canvas></div>
@@ -141,163 +69,273 @@
                 <h3>📚 Disponibilidad del catálogo</h3>
                 <div class="chart-wrap"><canvas id="chart-libros"></canvas></div>
             </div>
-        </section>
-        <section class="charts-grid" style="margin-top:0;">
+        </div>
+
+        <div class="charts-grid" style="margin-top:0;">
             <div class="chart-card">
                 <h3>👥 Alumnos más activos</h3>
                 <div id="alumnos-activos-list" style="padding:0.2rem 0;"></div>
             </div>
             <div class="chart-card">
                 <h3>⚠️ Préstamos vencidos</h3>
-                <div id="vencidos-lista" style="padding:0.2rem 0;font-size:0.85rem;color:var(--text-muted);text-align:center;padding-top:1rem;">Cargando...</div>
+                <div id="vencidos-lista" style="padding:0.2rem 0;color:var(--text-muted);text-align:center;padding-top:1rem;font-size:0.85rem;">Cargando...</div>
             </div>
-        </section>
+        </div>
 
-        <section class="dashboard-table-section">
+        <div class="dashboard-table-section">
             <div class="section-header">
-                <h2>📋 Consultas Recientes</h2>
+                <h2>🔍 Consultas recientes a la IA</h2>
                 <button class="btn-trash" onclick="borrarConsultas()">🗑️ Borrar historial</button>
             </div>
             <div class="table-container"><table class="data-table"><thead><tr><th>Consulta</th><th>Resultados</th><th>Fecha</th></tr></thead><tbody id="table-consultas"><tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--text-muted);">Cargando...</td></tr></tbody></table></div>
-        </section>
+        </div>
 
-        <section class="dashboard-table-section" style="margin-top:1.5rem;">
+        <div class="dashboard-table-section">
             <div class="section-header">
                 <h2>📝 Reservas</h2>
                 <button class="btn-trash" onclick="borrarReservas()">🗑️ Borrar historial</button>
             </div>
             <div class="table-container"><table class="data-table"><thead><tr><th>Alumno</th><th>Libro</th><th>Fecha</th><th>Estado</th></tr></thead><tbody id="table-reservas"><tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted);">Cargando...</td></tr></tbody></table></div>
-        </section>
+        </div>
     </main>
 
-    <script>
-    // Modal inline - no depende de archivo externo
-    if (!window.modalConfirm) {
-        window.modalConfirm = function(o) {
-            return new Promise(function(resolve) {
-                var overlay = document.createElement('div');
-                overlay.className = 'custom-modal-overlay';
-                overlay.innerHTML = '<div class="custom-modal-box"><span class="custom-modal-icon">'+(o.icono||'❓')+'</span><div class="custom-modal-title">'+(o.titulo||'Confirmá')+'</div><div class="custom-modal-msg">'+(o.mensaje||'')+'</div><div class="custom-modal-btns"><button class="custom-modal-btn-cancel" id="cm-no">'+(o.btnNo||'Cancelar')+'</button><button class="custom-modal-btn-confirm '+(o.peligro?'danger':'')+'" id="cm-si">'+(o.btnOk||'Confirmar')+'</button></div></div>';
-                document.body.appendChild(overlay);
-                function cerrar(r){ document.body.removeChild(overlay); resolve(r); }
-                overlay.querySelector('#cm-si').onclick = function(){ cerrar(true); };
-                overlay.querySelector('#cm-no').onclick = function(){ cerrar(false); };
-                overlay.onclick = function(e){ if(e.target===overlay) cerrar(false); };
-            });
-        };
-        window.modalAlert = function(o) {
-            return new Promise(function(resolve) {
-                var iconos = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
-                var overlay = document.createElement('div');
-                overlay.className = 'custom-modal-overlay';
-                overlay.innerHTML = '<div class="custom-modal-box"><span class="custom-modal-icon">'+(iconos[o.tipo]||'ℹ️')+'</span><div class="custom-modal-title">'+(o.titulo||'Aviso')+'</div><div class="custom-modal-msg">'+(o.mensaje||'')+'</div><div class="custom-modal-btns"><button class="custom-modal-btn-ok" id="cm-ok">Entendido</button></div></div>';
-                document.body.appendChild(overlay);
-                function cerrar(){ document.body.removeChild(overlay); resolve(); }
-                overlay.querySelector('#cm-ok').onclick = cerrar;
-                overlay.onclick = function(e){ if(e.target===overlay) cerrar(); };
-            });
-        };
-    }
-    </script>
     <script src="/static/js/auth.js"></script>
     <script>
-    let chartR=null, chartL=null;
-    const CD={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:12}}}}};
-
-    function initCharts(r,m){
-        if(chartR) chartR.destroy(); if(chartL) chartL.destroy();
-        const rc={pendiente:0,prestado:0,devuelto:0};
-        r.forEach(x=>{if(rc[x.estado]!==undefined)rc[x.estado]++;});
-        chartR=new Chart(document.getElementById('chart-reservas'),{type:'doughnut',data:{labels:['⏳ Pendientes','📖 Prestados','✅ Devueltos'],datasets:[{data:[rc.pendiente,rc.prestado,rc.devuelto],backgroundColor:['#f59e0b','#3b82f6','#22c55e'],borderColor:'#151e32',borderWidth:3}]},options:{...CD,cutout:'65%'}});
-        const disp=m.disponibles||0,prest=(m.total_libros||0)-disp;
-        chartL=new Chart(document.getElementById('chart-libros'),{type:'bar',data:{labels:['Disponibles','Prestados'],datasets:[{label:'Libros',data:[disp,prest],backgroundColor:['rgba(34,197,94,0.7)','rgba(239,68,68,0.7)'],borderColor:['#22c55e','#ef4444'],borderWidth:2,borderRadius:8}]},options:{...CD,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},x:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+    // ── Modales ──────────────────────────────────────────────
+    function modalConfirm(o) {
+        return new Promise(function(resolve) {
+            var el = document.createElement('div');
+            el.className = 'custom-modal-overlay';
+            el.innerHTML = '<div class="custom-modal-box">'
+                + '<span class="custom-modal-icon">' + (o.icono||'❓') + '</span>'
+                + '<div class="custom-modal-title">' + (o.titulo||'Confirmá') + '</div>'
+                + '<div class="custom-modal-msg">' + (o.mensaje||'') + '</div>'
+                + '<div class="custom-modal-btns">'
+                + '<button class="custom-modal-btn-cancel" id="cm-no">' + (o.btnNo||'Cancelar') + '</button>'
+                + '<button class="custom-modal-btn-confirm ' + (o.peligro?'danger':'') + '" id="cm-si">' + (o.btnOk||'Confirmar') + '</button>'
+                + '</div></div>';
+            document.body.appendChild(el);
+            function cerrar(r){ document.body.removeChild(el); resolve(r); }
+            el.querySelector('#cm-si').onclick = function(){ cerrar(true); };
+            el.querySelector('#cm-no').onclick = function(){ cerrar(false); };
+            el.onclick = function(e){ if(e.target===el) cerrar(false); };
+        });
     }
 
-    async function load(){
-        try{
-            const[m,r]=await Promise.all([fetch('/api/metricas').then(r=>r.json()),fetch('/api/reservas').then(r=>r.json())]);
-            document.getElementById('metrics-grid').innerHTML=`
-                <div class="metric-card"><div class="metric-icon">🔍</div><div class="metric-info"><h3>${m.total_consultas}</h3><p>Consultas</p></div></div>
-                <div class="metric-card"><div class="metric-icon">📚</div><div class="metric-info"><h3>${m.total_libros}</h3><p>Total Libros</p></div></div>
-                <div class="metric-card"><div class="metric-icon">✅</div><div class="metric-info"><h3>${m.disponibles}</h3><p>Disponibles</p></div></div>
-                <div class="metric-card"><div class="metric-icon">👥</div><div class="metric-info"><h3>${m.total_alumnos}</h3><p>Alumnos</p></div></div>
-                <div class="metric-card"><div class="metric-icon">⏳</div><div class="metric-info"><h3>${m.reservas_pendientes}</h3><p>Pendientes</p></div></div>
-                <div class="metric-card" style="border-left-color:#ef4444"><div class="metric-icon">⚠️</div><div class="metric-info"><h3>${m.prestamos_vencidos||0}</h3><p>Vencidos</p></div></div>\`;
-            document.getElementById('table-consultas').innerHTML=m.consultas_recientes?.length?m.consultas_recientes.map(q=>`<tr><td>${q.consulta}</td><td>${q.resultados}</td><td>${q.timestamp.split(' ')[0]}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin consultas recientes</td></tr>';
-            document.getElementById('table-reservas').innerHTML=r?.length?r.map(x=>{
-                const hoy = new Date();
-                const fechaPrestamo = x.fecha_prestamo ? new Date(x.fecha_prestamo) : null;
-                const diasPrestado = fechaPrestamo ? Math.floor((hoy - fechaPrestamo) / 86400000) : 0;
-                // Vencido: prestado hace más de 7 días
-                const vencido = x.estado === 'prestado' && diasPrestado > 7;
-                const[bc,bl,bt]=x.estado==='prestado'
-                    ? [vencido ? 'badge-pendiente' : 'badge-prestado',
-                       vencido ? `⚠️ Vencido (${diasPrestado}d)` : '📖 Prestado',
-                       `<button class="btn-devolver" onclick="marcarDevuelto(${x.id})">✅ Devuelto</button>`]
-                    : x.estado==='devuelto'
-                    ? ['badge-devuelto','✅ Devuelto','']
-                    : ['badge-pendiente','⏳ Pendiente',`<button class="btn-prestar" onclick="marcarPrestado(${x.id})">📤 Marcar Prestado</button>`];
-                const rowStyle = vencido ? 'background:rgba(239,68,68,0.06);' : '';
-                return`<tr style="${rowStyle}"><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva?.split(' ')[0]||'-'}</td><td><span class="${bc}">${bl}</span> ${bt}</td></tr>`;
-            }).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin reservas</td></tr>';
-            initCharts(r||[],m);
+    // ── Gráficos ─────────────────────────────────────────────
+    function drawDoughnut(canvasId, data, colors, labels) {
+        var canvas = document.getElementById(canvasId);
+        if(!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var W = canvas.parentElement.offsetWidth || 300;
+        var H = canvas.parentElement.offsetHeight || 200;
+        canvas.width = W; canvas.height = H;
+        var cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 20, inner = r * 0.62;
+        var total = data.reduce(function(a,b){return a+b;},0);
+        ctx.clearRect(0,0,W,H);
+        if(!total){
+            ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+            ctx.fillStyle='#1e293b'; ctx.fill();
+            ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2);
+            ctx.fillStyle='var(--bg-card)'; ctx.fill();
+            return;
+        }
+        var start = -Math.PI/2;
+        data.forEach(function(v,i){
+            var angle = (v/total)*Math.PI*2;
+            ctx.beginPath(); ctx.moveTo(cx,cy);
+            ctx.arc(cx,cy,r,start,start+angle);
+            ctx.closePath(); ctx.fillStyle=colors[i]; ctx.fill();
+            start += angle;
+        });
+        ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2);
+        ctx.fillStyle='#151e32'; ctx.fill();
+        // Leyenda
+        ctx.font = '11px Arial'; ctx.textAlign = 'left';
+        data.forEach(function(v,i){
+            var y = H*0.78 + i*16;
+            ctx.fillStyle = colors[i]; ctx.fillRect(W*0.08, y-9, 10, 10);
+            ctx.fillStyle = '#94a3b8'; ctx.fillText(labels[i]+': '+v, W*0.08+14, y);
+        });
+    }
+
+    function drawBar(canvasId, labels, values, colors) {
+        var canvas = document.getElementById(canvasId);
+        if(!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var W = canvas.parentElement.offsetWidth || 300;
+        var H = canvas.parentElement.offsetHeight || 200;
+        canvas.width = W; canvas.height = H;
+        var pad = {t:20, r:20, b:40, l:45};
+        var max = Math.max.apply(null, values) || 1;
+        var n = values.length;
+        var gap = (W-pad.l-pad.r)/n;
+        var bW = gap * 0.6;
+        ctx.clearRect(0,0,W,H);
+        for(var g=0; g<=4; g++){
+            var y = pad.t + (H-pad.t-pad.b)*g/4;
+            ctx.strokeStyle='#1e293b'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+            ctx.fillStyle='#94a3b8'; ctx.font='10px Arial'; ctx.textAlign='right';
+            ctx.fillText(Math.round(max*(4-g)/4), pad.l-4, y+4);
+        }
+        values.forEach(function(v,i){
+            var x = pad.l + gap*i + (gap-bW)/2;
+            var bH = (v/max)*(H-pad.t-pad.b);
+            var y = H-pad.b-bH;
+            ctx.fillStyle = Array.isArray(colors) ? colors[i%colors.length] : colors;
+            ctx.fillRect(x, y, bW, bH);
+            ctx.fillStyle='#94a3b8'; ctx.font='11px Arial'; ctx.textAlign='center';
+            ctx.fillText(labels[i], x+bW/2, H-pad.b+16);
+        });
+    }
+
+    // ── Cargar datos ─────────────────────────────────────────
+    async function load() {
+        try {
+            var mRes = await fetch('/api/metricas');
+            var rRes = await fetch('/api/reservas');
+            var m = await mRes.json();
+            var r = await rRes.json();
+
+            // Métricas
+            var mg = document.getElementById('metrics-grid');
+            mg.innerHTML = ''
+                + '<div class="metric-card"><div class="metric-icon">🔍</div><div class="metric-info"><h3>' + (m.total_consultas||0) + '</h3><p>Consultas</p></div></div>'
+                + '<div class="metric-card"><div class="metric-icon">📚</div><div class="metric-info"><h3>' + (m.total_libros||0) + '</h3><p>Total Libros</p></div></div>'
+                + '<div class="metric-card"><div class="metric-icon">✅</div><div class="metric-info"><h3>' + (m.disponibles||0) + '</h3><p>Disponibles</p></div></div>'
+                + '<div class="metric-card"><div class="metric-icon">👥</div><div class="metric-info"><h3>' + (m.total_alumnos||0) + '</h3><p>Alumnos</p></div></div>'
+                + '<div class="metric-card"><div class="metric-icon">⏳</div><div class="metric-info"><h3>' + (m.reservas_pendientes||0) + '</h3><p>Pendientes</p></div></div>'
+                + '<div class="metric-card" style="border-left-color:#ef4444"><div class="metric-icon">⚠️</div><div class="metric-info"><h3>' + (m.prestamos_vencidos||0) + '</h3><p>Vencidos</p></div></div>';
+
+            // Gráficos
+            var rc = {pendiente:0, prestado:0, devuelto:0};
+            if(Array.isArray(r)) r.forEach(function(x){ if(rc[x.estado]!==undefined) rc[x.estado]++; });
+            drawDoughnut('chart-reservas',
+                [rc.pendiente, rc.prestado, rc.devuelto],
+                ['#f59e0b','#3b82f6','#22c55e'],
+                ['Pendientes','Prestados','Devueltos']
+            );
+            var disp = m.disponibles||0, prest = (m.total_libros||0)-disp;
+            drawBar('chart-libros', ['Disponibles','Prestados'], [disp, prest], ['rgba(34,197,94,0.7)','rgba(239,68,68,0.7)']);
+
+            // Consultas
+            var tc = document.getElementById('table-consultas');
+            if(m.consultas_recientes && m.consultas_recientes.length) {
+                var html = '';
+                m.consultas_recientes.forEach(function(q){
+                    html += '<tr><td>' + (q.consulta||'') + '</td><td>' + (q.resultados||'') + '</td><td>' + ((q.timestamp||'').split(' ')[0]||'-') + '</td></tr>';
+                });
+                tc.innerHTML = html;
+            } else {
+                tc.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin consultas recientes</td></tr>';
+            }
+
+            // Reservas
+            var tr = document.getElementById('table-reservas');
+            if(Array.isArray(r) && r.length) {
+                var html2 = '';
+                r.forEach(function(x){
+                    var hoy = new Date();
+                    var fp = x.fecha_prestamo ? new Date(x.fecha_prestamo) : null;
+                    var dias = fp ? Math.floor((hoy-fp)/86400000) : 0;
+                    var vencido = x.estado==='prestado' && dias>7;
+                    var badge, accion;
+                    if(x.estado==='prestado') {
+                        badge = vencido ? '<span class="badge-pendiente">⚠️ Vencido ('+dias+'d)</span>' : '<span class="badge-prestado">📖 Prestado</span>';
+                        accion = '<button class="btn-devolver" onclick="marcarDevuelto('+x.id+')">✅ Devuelto</button>';
+                    } else if(x.estado==='devuelto') {
+                        badge = '<span class="badge-devuelto">✅ Devuelto</span>';
+                        accion = '';
+                    } else {
+                        badge = '<span class="badge-pendiente">⏳ Pendiente</span>';
+                        accion = '<button class="btn-prestar" onclick="marcarPrestado('+x.id+')">📤 Marcar Prestado</button>';
+                    }
+                    var rowStyle = vencido ? 'background:rgba(239,68,68,0.06);' : '';
+                    var fecha = (x.fecha_reserva||'').split(' ')[0] || '-';
+                    html2 += '<tr style="'+rowStyle+'"><td>'+(x.nombre||'-')+'</td><td>'+(x.libro_titulo||'General')+'</td><td>'+fecha+'</td><td>'+badge+' '+accion+'</td></tr>';
+                });
+                tr.innerHTML = html2;
+            } else {
+                tr.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin reservas</td></tr>';
+            }
 
             // Alumnos activos
-            const aa = m.alumnos_activos || [];
-            const maxT = aa.length ? Math.max(...aa.map(a=>a.total)) : 1;
-            document.getElementById('alumnos-activos-list').innerHTML = aa.length
-                ? aa.map((a,i) =>
-                    `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-                        <span style="color:var(--azul-claro);font-weight:700;font-size:0.82rem;min-width:20px;">#${i+1}</span>
-                        <div style="flex:1;min-width:0;">
-                            <div style="font-size:0.85rem;font-weight:600;color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nombre||a.username||a.email}</div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.email||''}</div>
-                            <div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;">
-                                <div style="height:3px;background:var(--azul-claro);border-radius:2px;width:${Math.round(a.total/maxT*100)}%;"></div>
-                            </div>
-                        </div>
-                        <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${a.total} res.</span>
-                    </div>`
-                ).join('')
-                : '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">Sin alumnos con reservas aún</div>';
+            var aa = m.alumnos_activos || [];
+            var maxT = aa.length ? Math.max.apply(null, aa.map(function(a){return a.total;})) : 1;
+            var aal = document.getElementById('alumnos-activos-list');
+            if(aa.length) {
+                var html3 = '';
+                aa.forEach(function(a, i){
+                    var pct = Math.round(a.total/maxT*100);
+                    html3 += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">'
+                        + '<span style="color:var(--azul-claro);font-weight:700;font-size:0.82rem;min-width:20px;">#'+(i+1)+'</span>'
+                        + '<div style="flex:1;min-width:0;">'
+                        + '<div style="font-size:0.85rem;font-weight:600;color:var(--text-heading);">'+(a.nombre||a.username||a.email||'-')+'</div>'
+                        + '<div style="font-size:0.72rem;color:var(--text-muted);">'+(a.email||'')+'</div>'
+                        + '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;">'
+                        + '<div style="height:3px;background:var(--azul-claro);border-radius:2px;width:'+pct+'%;"></div>'
+                        + '</div></div>'
+                        + '<span style="font-size:0.75rem;color:var(--text-muted);">'+a.total+' res.</span>'
+                        + '</div>';
+                });
+                aal.innerHTML = html3;
+            } else {
+                aal.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">Sin alumnos con reservas aún</div>';
+            }
 
             // Vencidos
             try {
-                const vRes = await fetch('/api/prestamos/vencidos');
-                const vData = await vRes.json();
-                const vEl = document.getElementById('vencidos-lista');
-                vEl.innerHTML = vData.length
-                    ? vData.map(v => `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-weight:600;color:var(--text-heading);font-size:0.82rem;">${v.nombre}</div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);">${v.titulo||'Reserva general'}</div>
-                        </div>
-                        <span style="color:#f87171;font-weight:700;font-size:0.78rem;white-space:nowrap;">${(v.dias_prestado||0)-7}d vencido</span>
-                    </div>`).join('')
-                    : '<div style="color:#22c55e;text-align:center;padding:1rem;font-size:0.85rem;">Sin préstamos vencidos ✓</div>';
+                var vRes = await fetch('/api/prestamos/vencidos');
+                var vData = await vRes.json();
+                var vEl = document.getElementById('vencidos-lista');
+                if(vData.length) {
+                    var html4 = '';
+                    vData.forEach(function(v){
+                        var dv = (v.dias_prestado||0)-7;
+                        html4 += '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
+                            + '<div><div style="font-weight:600;color:var(--text-heading);font-size:0.82rem;">'+(v.nombre||'-')+'</div>'
+                            + '<div style="font-size:0.72rem;color:var(--text-muted);">'+(v.titulo||'Reserva general')+'</div></div>'
+                            + '<span style="color:#f87171;font-weight:700;font-size:0.78rem;">'+dv+'d vencido</span>'
+                            + '</div>';
+                    });
+                    vEl.innerHTML = html4;
+                } else {
+                    vEl.innerHTML = '<div style="color:#22c55e;text-align:center;padding:1rem;font-size:0.85rem;">Sin préstamos vencidos ✓</div>';
+                }
             } catch(e) {}
 
-        }catch(e){console.error('Dashboard error:', e);}
+        } catch(e) { console.error('Dashboard error:', e); }
     }
 
-    async function marcarPrestado(id){
-        const ok=await modalConfirm({titulo:'Marcar como Prestado',mensaje:'¿Confirmas que el libro fue entregado al alumno?',icono:'📤',btnOk:'Sí, prestado',btnNo:'Cancelar'});
-        if(!ok)return;const r=await fetch(`/api/reservas/${id}/prestar`,{method:'PUT'});if(r.ok)load();
+    async function marcarPrestado(id) {
+        var ok = await modalConfirm({titulo:'Marcar como Prestado',mensaje:'¿Confirmás que el libro fue entregado al alumno?',icono:'📤',btnOk:'Sí, prestado',btnNo:'Cancelar'});
+        if(!ok) return;
+        var r = await fetch('/api/reservas/'+id+'/prestar', {method:'PUT'});
+        if(r.ok) load();
     }
-    async function marcarDevuelto(id){
-        const ok=await modalConfirm({titulo:'Confirmar devolución',mensaje:'¿El alumno devolvió el libro correctamente?',icono:'✅',btnOk:'Sí, devuelto',btnNo:'Cancelar'});
-        if(!ok)return;const r=await fetch(`/api/reservas/${id}/devolver`,{method:'PUT'});if(r.ok)load();
+    async function marcarDevuelto(id) {
+        var ok = await modalConfirm({titulo:'Confirmar devolución',mensaje:'¿El alumno devolvió el libro correctamente?',icono:'✅',btnOk:'Sí, devuelto',btnNo:'Cancelar'});
+        if(!ok) return;
+        var r = await fetch('/api/reservas/'+id+'/devolver', {method:'PUT'});
+        if(r.ok) load();
     }
-    async function borrarConsultas(){
-        const ok=await modalConfirm({titulo:'Borrar historial',mensaje:'Se eliminarán todas las consultas registradas. Esta acción no se puede deshacer.',icono:'🗑️',peligro:true,btnOk:'Borrar todo',btnNo:'Cancelar'});
-        if(!ok)return;const r=await fetch('/api/metricas',{method:'DELETE'});if(r.ok)load();
+    async function borrarConsultas() {
+        var ok = await modalConfirm({titulo:'Borrar historial',mensaje:'Se eliminarán todas las consultas. No se puede deshacer.',icono:'🗑️',peligro:true,btnOk:'Borrar todo',btnNo:'Cancelar'});
+        if(!ok) return;
+        var r = await fetch('/api/metricas', {method:'DELETE'});
+        if(r.ok) load();
     }
-    async function borrarReservas(){
-        const ok=await modalConfirm({titulo:'Borrar reservas',mensaje:'Se eliminarán todas las reservas del historial. Esta acción no se puede deshacer.',icono:'🗑️',peligro:true,btnOk:'Borrar todo',btnNo:'Cancelar'});
-        if(!ok)return;const r=await fetch('/api/reservas',{method:'DELETE'});if(r.ok)load();
+    async function borrarReservas() {
+        var ok = await modalConfirm({titulo:'Borrar reservas',mensaje:'Se eliminarán todas las reservas. No se puede deshacer.',icono:'🗑️',peligro:true,btnOk:'Borrar todo',btnNo:'Cancelar'});
+        if(!ok) return;
+        var r = await fetch('/api/reservas', {method:'DELETE'});
+        if(r.ok) load();
     }
 
-    load(); setInterval(load,60000);
+    load();
+    setInterval(load, 60000);
     </script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>
