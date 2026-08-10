@@ -56,6 +56,16 @@
                 <div class="chart-wrap"><canvas id="chart-libros"></canvas></div>
             </div>
         </section>
+        <section class="charts-grid" style="margin-top:0;">
+            <div class="chart-card">
+                <h3>👥 Alumnos más activos</h3>
+                <div id="alumnos-activos-list" style="padding:0.2rem 0;"></div>
+            </div>
+            <div class="chart-card">
+                <h3>⚠️ Préstamos vencidos</h3>
+                <div id="vencidos-lista" style="padding:0.2rem 0;font-size:0.85rem;color:var(--text-muted);text-align:center;padding-top:1rem;">Cargando...</div>
+            </div>
+        </section>
 
         <section class="dashboard-table-section">
             <div class="section-header">
@@ -117,7 +127,43 @@
                 return`<tr style="${rowStyle}"><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva?.split(' ')[0]||'-'}</td><td><span class="${bc}">${bl}</span> ${bt}</td></tr>`;
             }).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin reservas</td></tr>';
             initCharts(r||[],m);
-        }catch(e){console.error(e);}
+
+            // Alumnos activos
+            const aa = m.alumnos_activos || [];
+            const maxT = aa.length ? Math.max(...aa.map(a=>a.total)) : 1;
+            document.getElementById('alumnos-activos-list').innerHTML = aa.length
+                ? aa.map((a,i) =>
+                    `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                        <span style="color:var(--azul-claro);font-weight:700;font-size:0.82rem;min-width:20px;">#${i+1}</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:0.85rem;font-weight:600;color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nombre||a.username||a.email}</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.email||''}</div>
+                            <div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;">
+                                <div style="height:3px;background:var(--azul-claro);border-radius:2px;width:${Math.round(a.total/maxT*100)}%;"></div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${a.total} res.</span>
+                    </div>`
+                ).join('')
+                : '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">Sin alumnos con reservas aún</div>';
+
+            // Vencidos
+            try {
+                const vRes = await fetch('/api/prestamos/vencidos');
+                const vData = await vRes.json();
+                const vEl = document.getElementById('vencidos-lista');
+                vEl.innerHTML = vData.length
+                    ? vData.map(v => `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-weight:600;color:var(--text-heading);font-size:0.82rem;">${v.nombre}</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);">${v.titulo||'Reserva general'}</div>
+                        </div>
+                        <span style="color:#f87171;font-weight:700;font-size:0.78rem;white-space:nowrap;">${(v.dias_prestado||0)-7}d vencido</span>
+                    </div>`).join('')
+                    : '<div style="color:#22c55e;text-align:center;padding:1rem;font-size:0.85rem;">Sin préstamos vencidos ✓</div>';
+            } catch(e) {}
+
+        }catch(e){console.error('Dashboard error:', e);}
     }
 
     async function marcarPrestado(id){
