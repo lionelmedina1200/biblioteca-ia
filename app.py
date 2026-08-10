@@ -796,6 +796,19 @@ def actualizar_stock(libro_id):
     conn.close()
     return jsonify({"mensaje": "Stock actualizado correctamente", "cantidad": cantidad})
 
+@app.route("/api/usuarios")
+@bibliotecario_required
+def listar_usuarios():
+    try:
+        conn = get_db(); c = conn.cursor()
+        c.execute("SELECT id, username, nombre, email, rol, picture, avatar_id FROM usuarios ORDER BY nombre ASC")
+        usuarios = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(usuarios)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
 @app.route("/api/usuarios/<int:usuario_id>", methods=["DELETE"])
 @bibliotecario_required
 def eliminar_usuario(usuario_id):
