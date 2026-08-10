@@ -6,7 +6,7 @@
     <title>Dashboard · Biblioteca IA</title>
     <link rel="manifest" href="/static/manifest.json">
     <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         .skeleton { background: linear-gradient(90deg,var(--bg-card) 25%,#1e293b 50%,var(--bg-card) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -85,6 +85,35 @@
     </main>
 
     <script src="/static/js/modal.js"></script>
+    <script>
+    // Fallback inline por si modal.js no carga
+    if (!window.modalConfirm) {
+        window.modalConfirm = function(o) {
+            return new Promise(function(resolve) {
+                var overlay = document.createElement('div');
+                overlay.className = 'custom-modal-overlay';
+                overlay.innerHTML = '<div class="custom-modal-box"><span class="custom-modal-icon">'+(o.icono||'❓')+'</span><div class="custom-modal-title">'+(o.titulo||'Confirmá')+'</div><div class="custom-modal-msg">'+(o.mensaje||'')+'</div><div class="custom-modal-btns"><button class="custom-modal-btn-cancel" id="cm-no">'+(o.btnNo||'Cancelar')+'</button><button class="custom-modal-btn-confirm '+(o.peligro?'danger':'')+'" id="cm-si">'+(o.btnOk||'Confirmar')+'</button></div></div>';
+                document.body.appendChild(overlay);
+                function cerrar(r){ document.body.removeChild(overlay); resolve(r); }
+                overlay.querySelector('#cm-si').onclick = function(){ cerrar(true); };
+                overlay.querySelector('#cm-no').onclick = function(){ cerrar(false); };
+                overlay.onclick = function(e){ if(e.target===overlay) cerrar(false); };
+            });
+        };
+        window.modalAlert = function(o) {
+            return new Promise(function(resolve) {
+                var iconos = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
+                var overlay = document.createElement('div');
+                overlay.className = 'custom-modal-overlay';
+                overlay.innerHTML = '<div class="custom-modal-box"><span class="custom-modal-icon">'+(iconos[o.tipo]||'ℹ️')+'</span><div class="custom-modal-title">'+(o.titulo||'Aviso')+'</div><div class="custom-modal-msg">'+(o.mensaje||'')+'</div><div class="custom-modal-btns"><button class="custom-modal-btn-ok" id="cm-ok">Entendido</button></div></div>';
+                document.body.appendChild(overlay);
+                function cerrar(){ document.body.removeChild(overlay); resolve(); }
+                overlay.querySelector('#cm-ok').onclick = cerrar;
+                overlay.onclick = function(e){ if(e.target===overlay) cerrar(); };
+            });
+        };
+    }
+    </script>
     <script src="/static/js/auth.js"></script>
     <script>
     let chartR=null, chartL=null;
