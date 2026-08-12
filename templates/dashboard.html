@@ -73,7 +73,7 @@
 
         <div class="charts-grid" style="margin-top:0;">
             <div class="chart-card">
-                <h3>🟢 Alumnos online ahora</h3>
+                <h3>👥 Alumnos más activos</h3>
                 <div id="alumnos-activos-list" style="padding:0.2rem 0;"></div>
             </div>
             <div class="chart-card">
@@ -260,28 +260,29 @@
                 tr.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin reservas</td></tr>';
             }
 
-            // Alumnos online
-            try {
-                var onRes = await fetch('/api/alumnos/online');
-                var online = await onRes.json();
-                var aal = document.getElementById('alumnos-activos-list');
-                if(online.length) {
-                    var html3 = '';
-                    online.forEach(function(a){
-                        html3 += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">'
-                            + '<span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 6px #22c55e;"></span>'
-                            + '<div style="flex:1;min-width:0;">'
-                            + '<div style="font-size:0.85rem;font-weight:600;color:var(--text-heading);">'+(a.nombre||a.username||'-')+'</div>'
-                            + '<div style="font-size:0.72rem;color:var(--text-muted);">'+(a.email||'')+'</div>'
-                            + '</div>'
-                            + '<span style="font-size:0.7rem;color:#22c55e;font-weight:600;">Online</span>'
-                            + '</div>';
-                    });
-                    aal.innerHTML = html3;
-                } else {
-                    aal.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">Ningún alumno conectado ahora</div>';
-                }
-            } catch(e) {}
+            // Alumnos activos (con más reservas)
+            var aa = m.alumnos_activos || [];
+            var maxT = aa.length ? Math.max.apply(null, aa.map(function(a){return a.total;})) : 1;
+            var aal = document.getElementById('alumnos-activos-list');
+            if(aa.length) {
+                var html3 = '';
+                aa.forEach(function(a, i){
+                    var pct = Math.round(a.total/maxT*100);
+                    html3 += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">'
+                        + '<span style="color:var(--azul-claro);font-weight:700;font-size:0.82rem;min-width:20px;">#'+(i+1)+'</span>'
+                        + '<div style="flex:1;min-width:0;">'
+                        + '<div style="font-size:0.85rem;font-weight:600;color:var(--text-heading);">'+(a.nombre||a.username||a.email||'-')+'</div>'
+                        + '<div style="font-size:0.72rem;color:var(--text-muted);">'+(a.email||'')+'</div>'
+                        + '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px;">'
+                        + '<div style="height:3px;background:var(--azul-claro);border-radius:2px;width:'+pct+'%;"></div>'
+                        + '</div></div>'
+                        + '<span style="font-size:0.75rem;color:var(--text-muted);">'+a.total+' res.</span>'
+                        + '</div>';
+                });
+                aal.innerHTML = html3;
+            } else {
+                aal.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:0.85rem;">Sin alumnos con reservas aún</div>';
+            }
 
             // Vencidos
             try {
