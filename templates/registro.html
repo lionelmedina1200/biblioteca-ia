@@ -99,16 +99,29 @@
             var status = isOnline
                 ? '<span style="font-size:0.72rem;color:#22c55e;font-weight:700;background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:20px;">Online</span>'
                 : '<span style="font-size:0.72rem;color:#64748b;font-weight:600;background:rgba(71,85,105,0.1);padding:2px 8px;border-radius:20px;">Offline</span>';
-            var nombreSafe = (a.nombre||'').replace(/"/g,'');
             var rowBg = isOnline ? 'background:rgba(34,197,94,0.03);' : '';
-            return '<tr style="' + rowBg + '">'
-                + '<td style="display:flex;align-items:center;font-size:0.92rem;font-weight:500;">' + dot + (a.nombre||'-') + '</td>'
-                + '<td style="font-size:0.88rem;">' + (a.username || '<span style="color:#64748b;font-size:0.8rem;">Google OAuth</span>') + '</td>'
-                + '<td style="font-size:0.85rem;color:var(--text-muted);">' + (a.email||'-') + '</td>'
-                + '<td>' + status + ' &nbsp;<button onclick="eliminarAlumno(' + a.id + ',\"' + nombreSafe + '\")"'
-                + ' style="padding:4px 10px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;"'
-                + ' onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Eliminar</button></td>'
-                + '</tr>';
+            var tr = document.createElement('tr');
+            tr.style.cssText = rowBg;
+            var td1 = document.createElement('td');
+            td1.style.cssText = 'display:flex;align-items:center;font-size:0.92rem;font-weight:500;';
+            td1.innerHTML = dot + (a.nombre||'-');
+            var td2 = document.createElement('td');
+            td2.style.fontSize = '0.88rem';
+            td2.textContent = a.username || 'Google OAuth';
+            var td3 = document.createElement('td');
+            td3.style.cssText = 'font-size:0.85rem;color:var(--text-muted);';
+            td3.textContent = a.email || '-';
+            var td4 = document.createElement('td');
+            var btn = document.createElement('button');
+            btn.textContent = 'Eliminar';
+            btn.style.cssText = 'padding:4px 10px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;margin-left:6px;';
+            btn.onmouseover = function(){ this.style.background = '#7f1d1d'; };
+            btn.onmouseout  = function(){ this.style.background = 'transparent'; };
+            btn.onclick = function(){ eliminarAlumno(a.id, a.nombre||''); };
+            td4.innerHTML = status + ' ';
+            td4.appendChild(btn);
+            tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+            return tr.outerHTML;
         }
 
         async function loadAlumnos() {
