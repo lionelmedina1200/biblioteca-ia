@@ -829,7 +829,7 @@ def alumnos_online():
 def listar_usuarios():
     try:
         conn = get_db(); c = conn.cursor()
-        c.execute("SELECT id, username, nombre, email, rol, picture FROM usuarios ORDER BY nombre ASC")
+        c.execute("SELECT id, username, nombre, email, rol FROM usuarios ORDER BY nombre ASC")
         usuarios = fetchall_as_dicts(c)
         c.close(); conn.close()
         return jsonify(usuarios)
