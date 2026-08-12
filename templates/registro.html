@@ -115,9 +115,11 @@
             var btn = document.createElement('button');
             btn.textContent = 'Eliminar';
             btn.style.cssText = 'padding:4px 10px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;margin-left:6px;';
+            btn.dataset.uid = a.id;
+            btn.dataset.nombre = a.nombre || '';
             btn.onmouseover = function(){ this.style.background = '#7f1d1d'; };
             btn.onmouseout  = function(){ this.style.background = 'transparent'; };
-            btn.onclick = function(){ eliminarAlumno(a.id, a.nombre||''); };
+            btn.addEventListener('click', function(){ eliminarAlumno(parseInt(this.dataset.uid), this.dataset.nombre); });
             td4.innerHTML = status + ' ';
             td4.appendChild(btn);
             tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
