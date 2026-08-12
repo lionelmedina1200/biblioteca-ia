@@ -983,10 +983,19 @@ def catalogo():
 @app.route("/api/session")
 def get_session():
     if "usuario" in session:
+        u = session["usuario"]
+        # Actualizar ultimo_acceso para detectar usuarios online
+        if u.get("rol") == "alumno":
+            try:
+                conn = get_db(); c = conn.cursor()
+                c.execute("UPDATE usuarios SET ultimo_acceso=NOW() WHERE id=%s", (u["id"],))
+                conn.commit(); c.close(); conn.close()
+            except Exception:
+                pass
         return jsonify({
             "logged_in": True,
-            "usuario": session["usuario"],
-            "es_biblio": session["usuario"]["rol"] == "bibliotecario"
+            "usuario": u,
+            "es_biblio": u["rol"] == "bibliotecario"
         })
     return jsonify({"logged_in": False})
 
