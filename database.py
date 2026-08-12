@@ -120,6 +120,12 @@ def init_db():
     except Exception:
         pass
 
+    # Migrar ultimo_acceso
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acceso TIMESTAMP")
+    except Exception:
+        pass
+
     # Migrar avatar_id a usuarios si no existe
     try:
         c.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS avatar_id INTEGER DEFAULT 0")
