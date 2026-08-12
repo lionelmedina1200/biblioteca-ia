@@ -45,8 +45,8 @@
             <div id="reg-msg" class="success-msg" style="display:none;"></div>
         </div>
         <div class="checkin-card" style="margin-top:2rem;">
-            <h2>📋 Alumnos Activos</h2>
-            <div class="table-container"><table class="data-table"><thead><tr><th>Nombre</th><th>Usuario</th><th>Email</th><th>Acciones</th></tr></thead><tbody id="alumnos-list"></tbody></table></div>
+            <h2>📋 Alumnos Registrados</h2>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.8rem;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;box-shadow:0 0 6px #22c55e;"></span>Online ahora &nbsp;&nbsp;<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#475569;margin-right:4px;"></span>Offline</div><div class="table-container"><table class="data-table"><thead><tr><th>Nombre</th><th>Usuario</th><th>Email</th><th>Acciones</th></tr></thead><tbody id="alumnos-list"></tbody></table></div>
         </div>
     </main>
 
@@ -93,20 +93,31 @@
             if(res.ok) { e.target.reset(); loadAlumnos(); }
         };
         async function loadAlumnos() {
-            const u = await fetch('/api/usuarios').then(r=>r.json());
-            const alumnos = u.filter(x=>x.rol==='alumno');
+            const [usuarios, online] = await Promise.all([
+                fetch('/api/usuarios').then(r=>r.json()),
+                fetch('/api/alumnos/online').then(r=>r.json()).catch(()=>[])
+            ]);
+            const onlineIds = new Set(online.map(o=>o.id));
+            const alumnos = usuarios.filter(x=>x.rol==='alumno');
             document.getElementById('alumnos-list').innerHTML = alumnos.length
-                ? alumnos.map(a=>`<tr>
-                    <td>${a.nombre}</td>
-                    <td>${a.username}</td>
-                    <td>${a.email||'-'}</td>
-                    <td><button onclick="eliminarAlumno(${a.id},'${(a.nombre||'').replace(/'/g,'')}')"
-                        style="padding:4px 12px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;"
-                        onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">
-                        Eliminar</button></td>
-                </tr>`).join('')
+                ? alumnos.map(function(a) {
+                    var isOnline = onlineIds.has(a.id);
+                    var onlineDot = isOnline
+                        ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px;box-shadow:0 0 6px #22c55e;"></span>'
+                        : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#475569;margin-right:6px;"></span>';
+                    var nombreSafe = (a.nombre||'').replace(/'/g,'');
+                    return '<tr>'
+                        + '<td>' + onlineDot + (a.nombre||'-') + '</td>'
+                        + '<td>' + (a.username || '<span style="color:#64748b;font-size:0.8rem;">Google</span>') + '</td>'
+                        + '<td>' + (a.email||'-') + '</td>'
+                        + '<td><button onclick="eliminarAlumno(' + a.id + ','' + nombreSafe + '')"'
+                        + ' style="padding:4px 12px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;"'
+                        + ' onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Eliminar</button></td>'
+                        + '</tr>';
+                }).join('')
                 : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No hay alumnos registrados</td></tr>';
         }
+        setInterval(loadAlumnos, 30000);
 
         async function eliminarAlumno(id, nombre) {
             const ok = await modalConfirm({
