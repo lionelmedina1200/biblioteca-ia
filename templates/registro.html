@@ -92,16 +92,12 @@
             msg.style.display = 'block';
             if(res.ok) { e.target.reset(); loadAlumnos(); }
         };
-        function renderFila(a, isOnline) {
+        function renderFila(tbody, a, isOnline) {
             var dot = isOnline
                 ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:8px;box-shadow:0 0 6px #22c55e;flex-shrink:0;"></span>'
                 : '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#334155;margin-right:8px;flex-shrink:0;"></span>';
-            var status = isOnline
-                ? '<span style="font-size:0.72rem;color:#22c55e;font-weight:700;background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:20px;">Online</span>'
-                : '<span style="font-size:0.72rem;color:#64748b;font-weight:600;background:rgba(71,85,105,0.1);padding:2px 8px;border-radius:20px;">Offline</span>';
-            var rowBg = isOnline ? 'background:rgba(34,197,94,0.03);' : '';
             var tr = document.createElement('tr');
-            tr.style.cssText = rowBg;
+            if(isOnline) tr.style.background = 'rgba(34,197,94,0.03)';
             var td1 = document.createElement('td');
             td1.style.cssText = 'display:flex;align-items:center;font-size:0.92rem;font-weight:500;';
             td1.innerHTML = dot + (a.nombre||'-');
@@ -112,21 +108,23 @@
             td3.style.cssText = 'font-size:0.85rem;color:var(--text-muted);';
             td3.textContent = a.email || '-';
             var td4 = document.createElement('td');
+            td4.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
+            var statusSpan = document.createElement('span');
+            statusSpan.style.cssText = isOnline
+                ? 'font-size:0.72rem;color:#22c55e;font-weight:700;background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:20px;'
+                : 'font-size:0.72rem;color:#64748b;font-weight:600;background:rgba(71,85,105,0.1);padding:2px 8px;border-radius:20px;';
+            statusSpan.textContent = isOnline ? 'Online' : 'Offline';
             var btn = document.createElement('button');
             btn.textContent = 'Eliminar';
-            btn.style.cssText = 'padding:4px 10px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;margin-left:6px;';
-            btn.dataset.uid = a.id;
-            btn.dataset.nombre = a.nombre || '';
+            btn.style.cssText = 'padding:4px 10px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;';
             btn.onmouseover = function(){ this.style.background = '#7f1d1d'; };
             btn.onmouseout  = function(){ this.style.background = 'transparent'; };
-            btn.addEventListener('click', function(){ eliminarAlumno(parseInt(this.dataset.uid), this.dataset.nombre); });
-            var statusSpan = document.createElement('span');
-            statusSpan.innerHTML = status;
+            var uid = a.id; var unombre = a.nombre||'';
+            btn.onclick = function(){ eliminarAlumno(uid, unombre); };
             td4.appendChild(statusSpan);
-            td4.appendChild(document.createTextNode(' '));
             td4.appendChild(btn);
             tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
-            return tr.outerHTML;
+            tbody.appendChild(tr);
         }
 
         async function loadAlumnos() {
@@ -159,13 +157,19 @@
                     // Separador online
 
                     // Insertar separador offline en la posición correcta
-                    var rows = '';
-                    online_list.forEach(function(a){ rows += renderFila(a, true); });
+                    tbody.innerHTML = '';
+                    online_list.forEach(function(a){ renderFila(tbody, a, true); });
                     if(offline_list.length) {
-                        rows += '<tr><td colspan="4" style="background:rgba(71,85,105,0.15);padding:8px 14px;font-size:0.8rem;font-weight:700;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase;border-left:3px solid #475569;">⚫ Offline (' + offline_list.length + ')</td></tr>';
+                        var sepOffTr = document.createElement('tr');
+                    var sepOffTd = document.createElement('td');
+                    sepOffTd.colSpan = 4;
+                    sepOffTd.style.cssText = 'background:rgba(71,85,105,0.15);padding:8px 14px;font-size:0.8rem;font-weight:700;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase;border-left:3px solid #475569;';
+                    sepOffTd.textContent = '⚫ Offline (' + offline_list.length + ')';
+                    sepOffTr.appendChild(sepOffTd);
+                    tbody.appendChild(sepOffTr);
                     }
-                    offline_list.forEach(function(a){ rows += renderFila(a, false); });
-                    tbody.innerHTML = rows;
+                    offline_list.forEach(function(a){ renderFila(tbody, a, false); });
+
                 }
             } catch(e) { console.error('Error cargando alumnos:', e); }
         }
