@@ -93,31 +93,51 @@
             if(res.ok) { e.target.reset(); loadAlumnos(); }
         };
         async function loadAlumnos() {
-            const [usuarios, online] = await Promise.all([
-                fetch('/api/usuarios').then(r=>r.json()),
-                fetch('/api/alumnos/online').then(r=>r.json()).catch(()=>[])
-            ]);
-            const onlineIds = new Set(online.map(o=>o.id));
-            const alumnos = usuarios.filter(x=>x.rol==='alumno');
-            document.getElementById('alumnos-list').innerHTML = alumnos.length
-                ? alumnos.map(function(a) {
-                    var isOnline = onlineIds.has(a.id);
-                    var onlineDot = isOnline
-                        ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px;box-shadow:0 0 6px #22c55e;"></span>'
-                        : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#475569;margin-right:6px;"></span>';
-                    var nombreSafe = (a.nombre||'').replace(/'/g,'');
-                    return '<tr>'
-                        + '<td>' + onlineDot + (a.nombre||'-') + '</td>'
-                        + '<td>' + (a.username || '<span style="color:#64748b;font-size:0.8rem;">Google</span>') + '</td>'
-                        + '<td>' + (a.email||'-') + '</td>'
-                        + '<td><button onclick="eliminarAlumno(' + a.id + ','' + nombreSafe + '')"'
-                        + ' style="padding:4px 12px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;"'
-                        + ' onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Eliminar</button></td>'
-                        + '</tr>';
-                }).join('')
-                : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No hay alumnos registrados</td></tr>';
+            try {
+                var uRes = await fetch('/api/usuarios');
+                var usuarios = await uRes.json();
+                var onlineIds = new Set();
+                try {
+                    var oRes = await fetch('/api/alumnos/online');
+                    var online = await oRes.json();
+                    online.forEach(function(o){ onlineIds.add(o.id); });
+                } catch(e) {}
+                var alumnos = usuarios.filter(function(x){ return x.rol === 'alumno'; });
+                // Ordenar: online primero
+                alumnos.sort(function(a,b){
+                    var ao = onlineIds.has(a.id), bo = onlineIds.has(b.id);
+                    if(ao && !bo) return -1;
+                    if(!ao && bo) return 1;
+                    return (a.nombre||'').localeCompare(b.nombre||'');
+                });
+                var totalOnline = alumnos.filter(function(a){ return onlineIds.has(a.id); }).length;
+                document.querySelector('.checkin-card:last-child h2').innerHTML =
+                    '📋 Alumnos Registrados <span style="font-size:0.8rem;color:var(--text-muted);font-weight:400;">('
+                    + alumnos.length + ' total'
+                    + (totalOnline ? ', <span style="color:#22c55e;">' + totalOnline + ' online</span>' : '')
+                    + ')</span>';
+                document.getElementById('alumnos-list').innerHTML = alumnos.length
+                    ? alumnos.map(function(a) {
+                        var isOnline = onlineIds.has(a.id);
+                        var dot = isOnline
+                            ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px;box-shadow:0 0 5px #22c55e;flex-shrink:0;"></span>'
+                            : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#334155;margin-right:6px;flex-shrink:0;"></span>';
+                        var nombreSafe = (a.nombre||'').replace(/'/g,'');
+                        var rowStyle = isOnline ? 'background:rgba(34,197,94,0.04);' : '';
+                        return '<tr style="' + rowStyle + '">'
+                            + '<td style="display:flex;align-items:center;">' + dot + (a.nombre||'-') + '</td>'
+                            + '<td>' + (a.username || '<span style="color:#64748b;font-size:0.78rem;">Google OAuth</span>') + '</td>'
+                            + '<td>' + (a.email||'-') + '</td>'
+                            + '<td><button onclick="eliminarAlumno(' + a.id + ','' + nombreSafe + '')"'
+                            + ' style="padding:4px 12px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;"'
+                            + ' onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Eliminar</button></td>'
+                            + '</tr>';
+                    }).join('')
+                    : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No hay alumnos registrados</td></tr>';
+            } catch(e) { console.error('Error cargando alumnos:', e); }
         }
-        setInterval(loadAlumnos, 30000);
+        loadAlumnos();
+        setInterval(loadAlumnos, 10000);
 
         async function eliminarAlumno(id, nombre) {
             const ok = await modalConfirm({
@@ -140,7 +160,6 @@
             }
         }
 
-        loadAlumnos();
     </script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
