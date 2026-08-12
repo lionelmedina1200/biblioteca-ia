@@ -180,6 +180,12 @@ def api_login():
                 "email": usuario["email"],
                 "rol": usuario["rol"]
             }
+            # Registrar ultimo acceso
+            try:
+                conn2 = get_db(); c2 = conn2.cursor()
+                c2.execute("UPDATE usuarios SET ultimo_acceso=NOW() WHERE id=%s", (usuario["id"],))
+                conn2.commit(); c2.close(); conn2.close()
+            except Exception: pass
             return jsonify({
                 "mensaje": f"Bienvenido {usuario['nombre']}",
                 "usuario": session["usuario"],
@@ -795,6 +801,28 @@ def actualizar_stock(libro_id):
     c.close()
     conn.close()
     return jsonify({"mensaje": "Stock actualizado correctamente", "cantidad": cantidad})
+
+
+@app.route("/api/alumnos/online")
+@bibliotecario_required
+def alumnos_online():
+    try:
+        conn = get_db(); c = conn.cursor()
+        # Alumnos que tuvieron acceso en los últimos 15 minutos
+        c.execute("""
+            SELECT id, nombre, email, username, ultimo_acceso
+            FROM usuarios
+            WHERE rol = 'alumno'
+            AND ultimo_acceso IS NOT NULL
+            AND ultimo_acceso > NOW() - INTERVAL '15 minutes'
+            ORDER BY ultimo_acceso DESC
+        """)
+        rows = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(rows)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
 
 @app.route("/api/usuarios")
 @bibliotecario_required
