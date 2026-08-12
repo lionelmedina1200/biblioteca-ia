@@ -124,14 +124,21 @@
                             : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#334155;margin-right:6px;flex-shrink:0;"></span>';
                         var nombreSafe = (a.nombre||'').replace(/'/g,'');
                         var rowStyle = isOnline ? 'background:rgba(34,197,94,0.04);' : '';
-                        return '<tr style="' + rowStyle + '">'
-                            + '<td style="display:flex;align-items:center;">' + dot + (a.nombre||'-') + '</td>'
-                            + '<td>' + (a.username || '<span style="color:#64748b;font-size:0.78rem;">Google OAuth</span>') + '</td>'
-                            + '<td>' + (a.email||'-') + '</td>'
-                            + '<td><button onclick="eliminarAlumno(' + a.id + ','' + nombreSafe + '')"'
-                            + ' style="padding:4px 12px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;"'
-                            + ' onmouseover="this.style.background='#7f1d1d'" onmouseout="this.style.background='transparent'">Eliminar</button></td>'
-                            + '</tr>';
+                        var btn = document.createElement('button');
+                        btn.textContent = 'Eliminar';
+                        btn.style.cssText = 'padding:4px 12px;background:transparent;border:1.5px solid #7f1d1d;color:#f87171;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;';
+                        btn.onmouseover = function(){ this.style.background='#7f1d1d'; };
+                        btn.onmouseout  = function(){ this.style.background='transparent'; };
+                        btn.onclick = function(){ eliminarAlumno(a.id, a.nombre||''); };
+                        var tr = document.createElement('tr');
+                        if(rowStyle) tr.style.background = 'rgba(34,197,94,0.04)';
+                        var td1 = document.createElement('td'); td1.style.display='flex'; td1.style.alignItems='center';
+                        td1.innerHTML = dot; td1.appendChild(document.createTextNode(a.nombre||'-'));
+                        var td2 = document.createElement('td'); td2.textContent = a.username || 'Google OAuth';
+                        var td3 = document.createElement('td'); td3.textContent = a.email||'-';
+                        var td4 = document.createElement('td'); td4.appendChild(btn);
+                        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+                        return tr.outerHTML;
                     }).join('')
                     : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No hay alumnos registrados</td></tr>';
             } catch(e) { console.error('Error cargando alumnos:', e); }
